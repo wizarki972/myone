@@ -16,7 +16,7 @@ type hyprMonitor struct {
 	Id      int    `json:"id"`
 }
 
-func activeMonitor() (string, error) {
+func ActiveMonitor() (string, error) {
 	var monitors []hyprMonitor
 
 	output := cmds.ExecCommandWithOutput(hyprlandMonitorsComamnd)
@@ -46,7 +46,7 @@ func swayOSDNotify(backlight_name string) {
 	percent := curr / maxi
 
 	// focused monitor
-	name, err := activeMonitor()
+	name, err := ActiveMonitor()
 	if err != nil {
 		panic("error while getting focused monitor for osd")
 	}

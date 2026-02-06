@@ -161,7 +161,7 @@ func (md *MonitorDaemon) StartListener() {
 			for scanner.Scan() {
 				args := strings.TrimSpace(scanner.Text())
 				md.Events <- "Got argument to change brightness to " + args
-				name, err := activeMonitor()
+				name, err := ActiveMonitor()
 				if err != nil {
 					panic(err)
 				}
