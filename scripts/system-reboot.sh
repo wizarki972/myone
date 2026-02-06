@@ -1,5 +1,6 @@
 #!/bin/bash
 
+### credit goes to omarchy project basecamp/omarchy
 # Reboot command that first closes all application windows (thus giving them a chance to save state).
 # This is particularly helpful for applications like Chromium that otherwise won't shutdown cleanly.
 
