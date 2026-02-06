@@ -53,5 +53,5 @@ func swayOSDNotify(backlight_name string) {
 
 	// osd command
 	command := fmt.Sprintf("swayosd-client --monitor %s --custom-icon display-brightness --custom-progress %.2f --custom-progress-text '%.0f%%'", name, max(0.01, percent), percent*100)
-	cmds.ExecCommandNoOut(command)
+	cmds.ExecCommandNoFeedback(command)
 }
