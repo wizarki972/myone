@@ -1,10 +1,8 @@
 package fldir
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // STATIC VALUES
@@ -47,18 +45,3 @@ func ReadFileAsStringNoError(path string) string {
 }
 
 // DIRS
-
-func GetDirEntry(path, entry_substr string) (os.DirEntry, error) {
-	entries, err := os.ReadDir(path)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, entry := range entries {
-		if entry.IsDir() && strings.Contains(entry.Name(), entry_substr) {
-			return entry, nil
-		}
-	}
-
-	return nil, errors.New("dir entry not found")
-}
