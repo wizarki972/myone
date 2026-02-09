@@ -11,9 +11,18 @@ import (
 )
 
 type hyprMonitor struct {
-	Focused bool   `json:"focused"`
-	Name    string `json:"name"`
-	Id      int    `json:"id"`
+	Id      int     `json:"id"`
+	Name    string  `json:"name"`
+	Width   int     `json:"width"`
+	Height  int     `json:"height"`
+	Scale   float64 `json:"scale"`
+	Focused bool    `json:"focused"`
+}
+
+type HyprOption struct {
+	Option string `json:"option"`
+	Int    int    `json:"int"`
+	Set    bool   `json:"set"`
 }
 
 func ActiveMonitor() (string, error) {
@@ -54,4 +63,32 @@ func swayOSDNotify(backlight_name string) {
 	// osd command
 	command := fmt.Sprintf("swayosd-client --monitor %s --custom-icon display-brightness --custom-progress %.2f --custom-progress-text '%.0f%%'", name, max(0.01, percent), percent*100)
 	cmds.ExecCommandNoFeedback(command)
+}
+
+func GetScreenresolution() (int, int, int) {
+	var monitors []hyprMonitor
+	output := cmds.ExecCommandWithOutput(hyprlandMonitorsComamnd)
+	if err := json.Unmarshal(output, &monitors); err != nil {
+		panic(err)
+	}
+
+	for _, monitor := range monitors {
+		if monitor.Focused {
+			return monitor.Width, monitor.Height, int(monitor.Scale)
+		}
+	}
+
+	panic(errors.New("focused monitor not found"))
+}
+
+func GetHyprBorder() int {
+	command := "hyprctl -j getoption decoration:rounding"
+	output := cmds.ExecCommandWithOutput(command)
+
+	var hyprOption HyprOption
+	if err := json.Unmarshal([]byte(output), &hyprOption); err != nil {
+		panic(err)
+	}
+
+	return hyprOption.Int
 }

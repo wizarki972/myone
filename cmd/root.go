@@ -8,12 +8,14 @@ import (
 	"github.com/wizarki972/myone/internal/modules/audio"
 	"github.com/wizarki972/myone/internal/modules/battery"
 	"github.com/wizarki972/myone/internal/modules/display"
+	"github.com/wizarki972/myone/internal/modules/logout"
 	"github.com/wizarki972/myone/internal/modules/screenshot"
 )
 
 const VERSION = "0.5.5-alpha"
 
 var brightness string
+var log_out int
 var vol_notify, screen_shot, monitor_daemon, batt_mon, version bool
 
 var rootCMD = &cobra.Command{
@@ -22,6 +24,10 @@ var rootCMD = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(brightness) > 0 {
 			display.ChangeBrightness(brightness)
+		}
+
+		if log_out > 0 {
+			logout.Logout(min(log_out, 2))
 		}
 
 		if vol_notify {
@@ -50,6 +56,8 @@ var rootCMD = &cobra.Command{
 
 func initializeFlags() {
 	rootCMD.Flags().StringVar(&brightness, "bright", "", "+5% - increases the brightness by 5%, \n-5% decreases the brightness by 5%")
+
+	rootCMD.Flags().IntVar(&log_out, "logout", 0, "accepted values 1, 2. Displays power menu.")
 
 	rootCMD.Flags().BoolVar(&vol_notify, "volume-osd", false, "just tells swayosd to show current volume level of the current sink.")
 
