@@ -68,6 +68,8 @@ func initializeFlags() {
 	rootCMD.Flags().BoolVar(&monitor_daemon, "monitor-daemon", false, "continuosly checks for new/removed monitors and changes the brightness based on the focused monitor.\n NOTE: does not support OLED or LED displays. Only supports LCD displays (displays with backlight)")
 
 	rootCMD.Flags().BoolVarP(&version, "version", "v", false, "prints the package version")
+
+	initializeThemesFlags()
 }
 
 func Execute() {
