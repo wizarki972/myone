@@ -22,9 +22,15 @@ func getIcon(value float64) string {
 	}
 }
 
-func NotifyVolume() {
-	current, _ := strconv.ParseFloat(strings.TrimSpace(strings.TrimPrefix(string(cmds.ExecCommandWithOutput("wpctl get-volume @DEFAULT_SINK@")), "Volume: ")), 64)
-	fmt.Println(current)
+func NotifyVolume(device string) {
+
+	if device == "source" {
+		device = "@DEFAULT_SOURCE@"
+	} else {
+		device = "@DEFAULT_SINK@"
+	}
+
+	current, _ := strconv.ParseFloat(strings.TrimPrefix(strings.TrimSpace(string(cmds.ExecCommandWithOutput(fmt.Sprintf("wpctl get-volume %s", device)))), "Volume: "), 64)
 	monitor, _ := display.ActiveMonitor()
 	command := fmt.Sprintf("swayosd-client --monitor %s --custom-icon %s --custom-progress %.2f", monitor, getIcon(current*100.0), current)
 	cmds.ExecCommandNoFeedback(command)

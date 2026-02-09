@@ -14,9 +14,9 @@ import (
 
 const VERSION = "0.5.5-alpha"
 
-var brightness string
+var brightness, vol_notify string
 var log_out int
-var vol_notify, screen_shot, monitor_daemon, batt_mon, version bool
+var screen_shot, monitor_daemon, batt_mon, version bool
 
 var rootCMD = &cobra.Command{
 	Use:   "myone",
@@ -30,8 +30,8 @@ var rootCMD = &cobra.Command{
 			logout.Logout(min(log_out, 2))
 		}
 
-		if vol_notify {
-			audio.NotifyVolume()
+		if len(vol_notify) > 0 {
+			audio.NotifyVolume(vol_notify)
 		}
 
 		if screen_shot {
@@ -59,7 +59,7 @@ func initializeFlags() {
 
 	rootCMD.Flags().IntVar(&log_out, "logout", 0, "accepted values 1, 2. Displays power menu.")
 
-	rootCMD.Flags().BoolVar(&vol_notify, "volume-osd", false, "just tells swayosd to show current volume level of the current sink.")
+	rootCMD.Flags().StringVar(&vol_notify, "volume-osd", "", "just tells swayosd to show current volume level of the current sink(speaker or output device)/source(microphone or input device).\nAccepted values: sink, source")
 
 	rootCMD.Flags().BoolVar(&screen_shot, "screenshot", false, "opens flameshot gui with the XDG_USER_DIR/Screenshot as the save path")
 
