@@ -12,11 +12,12 @@ import (
 )
 
 func GetLogoutValues(layout int) (map[string]string, error) {
-	var width, height, hyprBorder, scale int
+	vals := display.GetScreenresolution()
+	width := vals[0]
+	height := vals[1]
+	scale := vals[2] * 100
 
-	width, height, scale = display.GetScreenresolution()
-	scale = scale * 100
-	hyprBorder = display.GetHyprBorder()
+	hyprBorder := display.GetHyprBorder()
 	fontSize := fmt.Sprintf("%d", height*2/100)
 	buttonRadius := fmt.Sprintf("%d", hyprBorder*8)
 	activeButtonRadius := fmt.Sprintf("%d", hyprBorder*5)

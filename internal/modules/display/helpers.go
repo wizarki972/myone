@@ -65,7 +65,7 @@ func swayOSDNotify(backlight_name string) {
 	cmds.ExecCommandNoFeedback(command)
 }
 
-func GetScreenresolution() (int, int, int) {
+func GetScreenresolution() []int {
 	var monitors []hyprMonitor
 	output := cmds.ExecCommandWithOutput(hyprlandMonitorsComamnd)
 	if err := json.Unmarshal(output, &monitors); err != nil {
@@ -74,7 +74,7 @@ func GetScreenresolution() (int, int, int) {
 
 	for _, monitor := range monitors {
 		if monitor.Focused {
-			return monitor.Width, monitor.Height, int(monitor.Scale)
+			return []int{monitor.Width, monitor.Height, int(monitor.Scale)}
 		}
 	}
 
