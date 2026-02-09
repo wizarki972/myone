@@ -28,6 +28,15 @@ install: build_cache
 	sudo cp ./scripts/* $(SCRIPTS_DIR)
 	sudo chmod +x $(SCRIPTS_DIR)
 
+	@echo "STARTING SYSTEM PROCESSES..."
+	-/usr/local/bin/myone --battery-monitor & disown
+	-/usr/local/bin/myone --monitor-daemon & disown
+
+start:
+	@echo "STARTING SYSTEM PROCESSES..."
+	-/usr/local/bin/myone --battery-monitor & disown
+	-/usr/local/bin/myone --monitor-daemon & disown
+
 clean:
 	@echo "CLEANING UP..."
 	-rm -rf $(CACHE_DIR)
