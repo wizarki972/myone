@@ -70,6 +70,7 @@ func initializeFlags() {
 	rootCMD.Flags().BoolVarP(&version, "version", "v", false, "prints the package version")
 
 	initializeThemesFlags()
+	initializeWallsFlags()
 }
 
 func Execute() {

@@ -11,12 +11,14 @@ const CACHE_BASE_DIR = ".cache/myone"
 const CONFIG_DIR = ".config/myone"
 
 var PseudoPaths = map[string]string{
+	"base":       BASE_DIR,
 	"config":     filepath.Join(CONFIG_DIR, "config.toml"),
 	"cache":      CACHE_BASE_DIR,
 	"scripts":    filepath.Join(BASE_DIR, "bin"),
 	"themes":     filepath.Join(BASE_DIR, "themes"),
 	"git_clones": filepath.Join(CACHE_BASE_DIR, "git_clones"),
 	"build":      filepath.Join(CACHE_BASE_DIR, "build"),
+	"walls":      filepath.Join(BASE_DIR, "mywalls"),
 }
 
 func GetDirPathFor(value string) string {
