@@ -52,6 +52,13 @@ func (w *Wall) RefreshLocalIndices() {
 	}
 
 	local_index_path := filepath.Join(config.GetDirPathFor("walls"), "index.txt")
+	if !fldir.IsPathExist(local_index_path) {
+		if _, err := os.Create(local_index_path); err != nil {
+			panic(err)
+		}
+		return
+	}
+
 	indices, err := fldir.ReadFileAsString(local_index_path)
 	if err != nil {
 		panic(err)
