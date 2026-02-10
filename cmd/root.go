@@ -12,7 +12,7 @@ import (
 	"github.com/wizarki972/myone/internal/modules/screenshot"
 )
 
-const VERSION = "0.5.5-alpha"
+const VERSION = "0.7.1-alpha"
 
 var brightness, vol_notify string
 var log_out int
