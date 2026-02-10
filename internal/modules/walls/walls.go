@@ -31,18 +31,18 @@ type index struct {
 func NewWall() *Wall {
 	return &Wall{
 		indexPath:          filepath.Join(config.GetDirPathFor("walls"), "index.txt"),
-		local_indices:      make(map[string]index),
+		local_indices:      make(map[string]*index),
 		is_local_refreshed: false,
-		repo_indices:       make(map[string]index),
+		repo_indices:       make(map[string]*index),
 		is_repo_refreshed:  false,
 	}
 }
 
 type Wall struct {
 	indexPath          string
-	local_indices      map[string]index
+	local_indices      map[string]*index
 	is_local_refreshed bool
-	repo_indices       map[string]index
+	repo_indices       map[string]*index
 	is_repo_refreshed  bool
 }
 
@@ -69,7 +69,7 @@ func (w *Wall) RefreshLocalIndices() {
 		if err != nil {
 			panic(err)
 		}
-		w.local_indices[strings.TrimSpace(parts[1])] = index{
+		w.local_indices[strings.TrimSpace(parts[1])] = &index{
 			Version: version,
 			Name:    strings.TrimSpace(parts[1]),
 			ZipName: strings.TrimSpace(parts[2]),
@@ -97,7 +97,7 @@ func (w *Wall) RefreshRepoIndices() {
 		if err != nil {
 			panic(err)
 		}
-		w.repo_indices[strings.TrimSpace(parts[1])] = index{
+		w.repo_indices[strings.TrimSpace(parts[1])] = &index{
 			Version: version,
 			Name:    strings.TrimSpace(parts[1]),
 			ZipName: strings.TrimSpace(parts[2]),
@@ -138,9 +138,8 @@ func (w *Wall) ListInstalled() {
 }
 
 func (w *Wall) Remove(pack_name string) {
-	if !w.is_local_refreshed {
-		w.RefreshLocalIndices()
-	}
+	w.RefreshLocalIndices()
+	w.RefreshRepoIndices()
 
 	if err := os.RemoveAll(filepath.Join(config.GetDirPathFor("walls"), pack_name)); err != nil {
 		panic(err)
@@ -150,9 +149,8 @@ func (w *Wall) Remove(pack_name string) {
 }
 
 func (w *Wall) Install(pack_name string) {
-	if !w.is_repo_refreshed {
-		w.RefreshRepoIndices()
-	}
+	w.RefreshRepoIndices()
+	w.RefreshLocalIndices()
 
 	// DOWNLOADING WALL PACK
 	cache_path := filepath.Join(config.GetDirPathFor("cache"), "walls", w.repo_indices[pack_name].ZipName)
@@ -177,16 +175,21 @@ func (w *Wall) Install(pack_name string) {
 }
 
 func (w *Wall) WriteIndex() {
-	var content = ""
-	for _, index := range w.local_indices {
-		content += fmt.Sprintf("%.2f = %s = %s", index.Version, index.Name, index.ZipName)
+	// var content = ""
+	// for _, index := range w.local_indices {
+	// 	content += fmt.Sprintf("%.2f = %s = %s", index.Version, index.Name, index.ZipName)
+	// }
+
+	var b strings.Builder
+	for _, v := range w.local_indices {
+		fmt.Fprintf(&b, "%.2f = %s = %s\n", v.Version, v.Name, v.ZipName)
 	}
-	fldir.WriteFile(content, w.indexPath)
+
+	fldir.WriteFile(b.String(), w.indexPath)
 }
 
 func (w *Wall) ShowWallpaperChangeMenu() {
 	w.RefreshLocalIndices()
-	w.RefreshRepoIndices()
 
 	// PACK MENU
 	rofi_input := rofiWallMenuBuilder(config.GetDirPathFor("walls"), "dir")
