@@ -9,6 +9,7 @@ import (
 	"github.com/wizarki972/myone/internal/utils/user"
 )
 
+const VERSION = "0.7.1-alpha"
 const DEFAULT_THEME = "tokyonight"
 
 var Default_Config = Config{

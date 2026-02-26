@@ -10,9 +10,8 @@ import (
 	"github.com/wizarki972/myone/internal/modules/display"
 	"github.com/wizarki972/myone/internal/modules/logout"
 	"github.com/wizarki972/myone/internal/modules/screenshot"
+	"github.com/wizarki972/myone/internal/utils/config"
 )
-
-const VERSION = "0.7.1-alpha"
 
 var brightness, vol_notify string
 var log_out int
@@ -47,7 +46,7 @@ var rootCMD = &cobra.Command{
 		}
 
 		if version {
-			fmt.Println(VERSION)
+			fmt.Println(config.VERSION)
 		}
 
 		return nil
