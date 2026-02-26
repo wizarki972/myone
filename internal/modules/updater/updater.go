@@ -1,6 +1,7 @@
 package updater
 
 import (
+	"fmt"
 	"log/slog"
 	"os/exec"
 	"path/filepath"
@@ -52,5 +53,7 @@ func Update() {
 		if err := cmd.Run(); err != nil {
 			panic(err)
 		}
+	} else {
+		fmt.Println("Already on the latest build.")
 	}
 }
