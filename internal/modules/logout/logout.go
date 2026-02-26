@@ -64,6 +64,14 @@ func Logout(layout int) {
 	layoutPath := fmt.Sprintf("%s/.config/wlogout/layout_%d", home, layout)
 	stylesPath := fmt.Sprintf("%s/.config/wlogout/style_%d.css", home, layout)
 
+	// Testing 3rd layout
+	// if layout == 3 {
+	// 	command := fmt.Sprintf("wlogout -b %d -c 0 -r 0 -m 0 --layout %s --css %s --protocol layer-shell", 3, layoutPath, stylesPath)
+	// 	if err = cmds.ExecComamndWithError(command); err != nil {
+	// 		panic(err)
+	// 	}
+	// }
+
 	stylesContent, err := fldir.ReadFileAsString(stylesPath)
 	if err != nil {
 		panic(err)
