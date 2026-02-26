@@ -5,7 +5,7 @@ BASE_DIR = ~/.local/share/myone
 SCRIPTS_DIR = $(BASE_DIR)/bin
 GO = go
 
-all: build install
+all: install
 
 build:
 	@echo "==> Building Binary..."
@@ -20,17 +20,35 @@ build_cache:
 	chmod +x $(CACHE_DIR)/build/$(BINARY_NAME)
 
 install: build_cache
+	@echo "KILLING OLD PROCESSES..."
 	-killall -9 $(BINARY_NAME)
 
+	@echo "INSTALLING SCRIPTS..."
+	-mkdir -p $(SCRIPTS_DIR)
+	cp ./scripts/* $(SCRIPTS_DIR)
+	chmod +x $(SCRIPTS_DIR)
 	@echo "INSTALLING..."
 	sudo install -Dm755 $(CACHE_DIR)/build/$(BINARY_NAME) $(INSTALL_DIR)/$(BINARY_NAME)
-	mkdir -p $(SCRIPTS_DIR)
-	sudo cp ./scripts/* $(SCRIPTS_DIR)
-	sudo chmod +x $(SCRIPTS_DIR)
 
 	@echo "STARTING SYSTEM PROCESSES..."
 	-/usr/local/bin/myone --battery-monitor & disown
 	-/usr/local/bin/myone --monitor-daemon & disown
+
+install_pkexec: build_cache
+	@echo "KILLING OLD PROCESSES..."
+	-killall -9 $(BINARY_NAME)
+
+	@echo "INSTALLING SCRIPTS..."
+	-mkdir -p $(SCRIPTS_DIR)
+	cp ./scripts/* $(SCRIPTS_DIR)
+	chmod +x $(SCRIPTS_DIR)
+	@echo "INSTALLING..."
+	pkexec install -Dm755 $(CACHE_DIR)/build/$(BINARY_NAME) $(INSTALL_DIR)/$(BINARY_NAME)
+
+	@echo "STARTING SYSTEM PROCESSES..."
+	-/usr/local/bin/myone --battery-monitor & disown
+	-/usr/local/bin/myone --monitor-daemon & disown
+
 
 start:
 	@echo "STARTING SYSTEM PROCESSES..."

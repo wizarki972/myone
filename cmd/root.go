@@ -10,12 +10,13 @@ import (
 	"github.com/wizarki972/myone/internal/modules/display"
 	"github.com/wizarki972/myone/internal/modules/logout"
 	"github.com/wizarki972/myone/internal/modules/screenshot"
+	"github.com/wizarki972/myone/internal/modules/updater"
 	"github.com/wizarki972/myone/internal/utils/config"
 )
 
 var brightness, vol_notify string
 var log_out int
-var screen_shot, monitor_daemon, batt_mon, version bool
+var screen_shot, monitor_daemon, batt_mon, version, update bool
 
 var rootCMD = &cobra.Command{
 	Use:   "myone",
@@ -49,6 +50,10 @@ var rootCMD = &cobra.Command{
 			fmt.Println(config.VERSION)
 		}
 
+		if update {
+			updater.Update()
+		}
+
 		return nil
 	},
 }
@@ -67,6 +72,8 @@ func initializeFlags() {
 	rootCMD.Flags().BoolVar(&monitor_daemon, "monitor-daemon", false, "continuosly checks for new/removed monitors and changes the brightness based on the focused monitor.\n NOTE: does not support OLED or LED displays. Only supports LCD displays (displays with backlight)")
 
 	rootCMD.Flags().BoolVarP(&version, "version", "v", false, "prints the package version")
+
+	rootCMD.Flags().BoolVarP(&update, "update", "u", false, "for updating the package")
 
 	initializeThemesFlags()
 	initializeWallsFlags()
