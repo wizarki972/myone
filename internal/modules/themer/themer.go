@@ -1,18 +1,19 @@
 package themer
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/wizarki972/myone/internal/utils/cmds"
 	"github.com/wizarki972/myone/internal/utils/config"
 	themes_config "github.com/wizarki972/myone/internal/utils/config/themes"
 	"github.com/wizarki972/myone/internal/utils/fldir"
 	"github.com/wizarki972/myone/internal/utils/user"
 )
+
+const THEMES_ZIP_URL = "https://raw.githubusercontent.com/wizarki972/mythemes/main/zips/themes.zip"
+const VERSION_URL = "https://raw.githubusercontent.com/wizarki972/mythemes/main/VERSION"
 
 func NewThemer(theme_name string) *Themer {
 	if theme_name == "default" {
@@ -34,40 +35,31 @@ type Themer struct {
 }
 
 func Download() {
-	var err error
-
+	// MAIN AREA CHECK
 	themes_path := config.GetDirPathFor("themes")
 	fldir.CreateDirectory(themes_path)
 
+	// CACHE PATH CHECK
 	cache_dir := filepath.Join(config.GetDirPathFor("cache"), "themes")
-	cache_path := filepath.Join(config.GetDirPathFor("cache"), "themes/mythemes.zip")
+	cache_path := filepath.Join(config.GetDirPathFor("cache"), "themes/themes.zip")
 	fldir.CreateDirectory(cache_dir)
 
-	slog.Info("Downloading themes...")
-	command := "curl -L https://github.com/wizarki972/mythemes/archive/refs/heads/main.zip -o " + cache_path
-	if err = cmds.ExecComamndWithError(command); err != nil {
-		slog.Error("Failed to download themes")
-		os.Exit(1)
-	}
+	// DOWNLOADING ZIP
+	fldir.DownloadURL(THEMES_ZIP_URL, cache_path)
 
-	slog.Info("Removing currently installed themes...")
+	// REMOVING CURRENTLY DOWNLOADED VERSION
 	if err := os.RemoveAll(themes_path); err != nil {
 		slog.Error("Failed to remove themes ==> " + err.Error())
 	}
 	fldir.CreateDirectory(themes_path)
 
-	slog.Info("Installing themes...")
-	command = fmt.Sprintf("unzip -o %s -d %s && mv %s/mythemes-main/* %s", cache_path, cache_dir, cache_dir, themes_path)
-	if err = cmds.ExecComamndWithError(command); err != nil {
-		slog.Error("Failed during installing downloaded themes")
-		os.Exit(1)
-	}
+	// Moving downloaded files to main area
+	fldir.Unzip(cache_path, themes_path)
 
 	slog.Info("Cleaning Up...")
 	if err := os.RemoveAll(cache_dir); err != nil {
 		slog.Error("Failed to remove cache")
 	}
-	slog.Info("You can install the downloaded themes now...")
 }
 
 func (t *Themer) Install() {
