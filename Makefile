@@ -20,47 +20,40 @@ build_cache:
 	chmod +x $(CACHE_DIR)/build/$(BINARY_NAME)
 
 install: build_cache
-	@echo "KILLING OLD PROCESSES..."
-	-killall -9 $(BINARY_NAME)
-
-	@echo "INSTALLING SCRIPTS..."
+	@echo "PLACING FILES IN RIGHT PLACES..."
 	-mkdir -p $(SCRIPTS_DIR)
 	cp ./scripts/* $(SCRIPTS_DIR)
 	chmod +x $(SCRIPTS_DIR)
+	
 	@echo "INSTALLING..."
 	sudo install -Dm755 $(CACHE_DIR)/build/$(BINARY_NAME) $(INSTALL_DIR)/$(BINARY_NAME)
 
-	@echo "STARTING SYSTEM PROCESSES..."
-	-/usr/local/bin/myone --battery-monitor & disown
-	-/usr/local/bin/myone --monitor-daemon & disown
+	$(MAKE) start
 
 install_pkexec: build_cache
-	@echo "KILLING OLD PROCESSES..."
-	-killall -9 $(BINARY_NAME)
-
-	@echo "INSTALLING SCRIPTS..."
+	@echo "PLACING FILES IN RIGHT PLACES..."
 	-mkdir -p $(SCRIPTS_DIR)
 	cp ./scripts/* $(SCRIPTS_DIR)
 	chmod +x $(SCRIPTS_DIR)
+	
 	@echo "INSTALLING..."
 	pkexec install -Dm755 $(CACHE_DIR)/build/$(BINARY_NAME) $(INSTALL_DIR)/$(BINARY_NAME)
 
-	@echo "STARTING SYSTEM PROCESSES..."
-	-/usr/local/bin/myone --battery-monitor & disown
-	-/usr/local/bin/myone --monitor-daemon & disown
-
-
 start:
+	@echo "KILLING OLD PROCESSES..."
+	-killall -9 $(BINARY_NAME)
+
 	@echo "STARTING SYSTEM PROCESSES..."
 	-/usr/local/bin/myone --battery-monitor & disown
 	-/usr/local/bin/myone --monitor-daemon & disown
 
 clean:
 	@echo "CLEANING UP..."
-	-rm -rf $(CACHE_DIR)
+	-rm -rf $(CACHE_DIR)/build
 
 run: build_cache
 	@echo "RUNNING..."
 	$(CACHE_DIR)/build/$(BINARY_NAME)
+	$(MAKE) clean
 
-.PHONY: all build build_cache install clean run
+.PHONY: all build build_cache install install_pkexec start clean run

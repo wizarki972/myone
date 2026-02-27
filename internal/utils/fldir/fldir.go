@@ -201,7 +201,7 @@ func (pw *progress_writter) Write(b []byte) (int, error) {
 	return n, nil
 }
 
-func DownloadURL(URL, destination string) {
+func DownloadURL(URL, destination string, want_progress bool) {
 	resp, err := http.Get(URL)
 	if err != nil {
 		panic(err)
@@ -219,10 +219,14 @@ func DownloadURL(URL, destination string) {
 	}
 	defer out.Close()
 
-	pw := &progress_writter{Total: resp.ContentLength}
-	if _, err = io.Copy(out, io.TeeReader(resp.Body, pw)); err != nil {
-		fmt.Println()
+	if want_progress {
+		pw := &progress_writter{Total: resp.ContentLength}
+		if _, err = io.Copy(out, io.TeeReader(resp.Body, pw)); err != nil {
+			fmt.Println()
+			panic(err)
+		}
+		fmt.Println("\nDone")
+	} else if _, err := io.Copy(out, resp.Body); err != nil {
 		panic(err)
 	}
-	fmt.Println("\nDone")
 }

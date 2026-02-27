@@ -29,8 +29,11 @@ type index struct {
 }
 
 func NewWall() *Wall {
+	wallDir := filepath.Join(config.GetDirPathFor("base"), "walls")
+
 	return &Wall{
-		indexPath:          filepath.Join(config.GetDirPathFor("walls"), "index.txt"),
+		wallDir:            wallDir,
+		indexPath:          filepath.Join(wallDir, "index.txt"),
 		local_indices:      make(map[string]*index),
 		is_local_refreshed: false,
 		repo_indices:       make(map[string]*index),
@@ -39,7 +42,9 @@ func NewWall() *Wall {
 }
 
 type Wall struct {
-	indexPath          string
+	wallDir   string
+	indexPath string
+
 	local_indices      map[string]*index
 	is_local_refreshed bool
 	repo_indices       map[string]*index
@@ -51,7 +56,7 @@ func (w *Wall) RefreshLocalIndices() {
 		return
 	}
 
-	local_index_path := filepath.Join(config.GetDirPathFor("walls"), "index.txt")
+	local_index_path := w.indexPath
 	if !fldir.IsPathExist(local_index_path) {
 		if _, err := os.Create(local_index_path); err != nil {
 			panic(err)
@@ -148,7 +153,7 @@ func (w *Wall) Remove(pack_name string) {
 	w.RefreshLocalIndices()
 	w.RefreshRepoIndices()
 
-	if err := os.RemoveAll(filepath.Join(config.GetDirPathFor("walls"), pack_name)); err != nil {
+	if err := os.RemoveAll(filepath.Join(w.wallDir, pack_name)); err != nil {
 		panic(err)
 	}
 	delete(w.local_indices, pack_name)
@@ -160,12 +165,12 @@ func (w *Wall) Install(pack_name string) {
 	w.RefreshLocalIndices()
 
 	// DOWNLOADING WALL PACK
-	cache_path := filepath.Join(config.GetDirPathFor("cache"), "walls", w.repo_indices[pack_name].ZipName)
-	fldir.DownloadURL(ZIPS_DIR_URL+w.repo_indices[pack_name].ZipName, cache_path)
+	cache_path := filepath.Join(config.CACHE_BASE_DIR, "walls", w.repo_indices[pack_name].ZipName)
+	fldir.DownloadURL(ZIPS_DIR_URL+w.repo_indices[pack_name].ZipName, cache_path, true)
 
 	// UNZIPPING PACK
 	fmt.Println("EXTRACTING WALLPAPERS...")
-	destination := filepath.Join(config.GetDirPathFor("walls"), pack_name)
+	destination := filepath.Join(w.wallDir, pack_name)
 	fldir.CreateDirectory(destination)
 	fldir.Unzip(cache_path, destination)
 
@@ -182,11 +187,6 @@ func (w *Wall) Install(pack_name string) {
 }
 
 func (w *Wall) WriteIndex() {
-	// var content = ""
-	// for _, index := range w.local_indices {
-	// 	content += fmt.Sprintf("%.2f = %s = %s", index.Version, index.Name, index.ZipName)
-	// }
-
 	var b strings.Builder
 	for _, v := range w.local_indices {
 		fmt.Fprintf(&b, "%.2f = %s = %s\n", v.Version, v.Name, v.ZipName)
@@ -199,7 +199,7 @@ func (w *Wall) ShowWallpaperChangeMenu() {
 	w.RefreshLocalIndices()
 
 	// PACK MENU
-	rofi_input := rofiWallMenuBuilder(config.GetDirPathFor("walls"), "dir")
+	rofi_input := rofiWallMenuBuilder(w.wallDir, "dir")
 	command := fmt.Sprintf("printf '%s' | rofi -dmenu -theme %s/.config/rofi/themes/wallpapers.rasi", rofi_input, user.GetHomeDir())
 	selected_pack, err := cmds.ExecCommand(command)
 	if err != nil {
@@ -207,7 +207,7 @@ func (w *Wall) ShowWallpaperChangeMenu() {
 	}
 
 	// WALLS MENU
-	pack_dir := filepath.Join(config.GetDirPathFor("walls"), strings.TrimSpace(string(selected_pack)))
+	pack_dir := filepath.Join(w.wallDir, strings.TrimSpace(string(selected_pack)))
 	rofi_input = rofiWallMenuBuilder(pack_dir, "")
 	cmd := exec.Command(
 		"rofi",

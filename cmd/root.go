@@ -59,21 +59,21 @@ var rootCMD = &cobra.Command{
 }
 
 func initializeFlags() {
-	rootCMD.Flags().StringVar(&brightness, "bright", "", "+5% - increases the brightness by 5%, \n-5% decreases the brightness by 5%")
+	rootCMD.Flags().StringVar(&brightness, "bright", "", "+5% - increases the brightness by 5%, \n-5% decreases the brightness by 5%.")
 
 	rootCMD.Flags().IntVar(&log_out, "logout", 0, "accepted values 1, 2. Displays power menu.")
 
-	rootCMD.Flags().StringVar(&vol_notify, "volume-osd", "", "just tells swayosd to show current volume level of the current sink(speaker or output device)/source(microphone or input device).\nAccepted values: sink, source")
+	rootCMD.Flags().StringVar(&vol_notify, "volume-osd", "", "just tells swayosd to show current volume level of the current sink(speaker or output device)/source(microphone or input device).\nAccepted values: sink, source.")
 
-	rootCMD.Flags().BoolVar(&screen_shot, "screenshot", false, "opens flameshot gui with the XDG_USER_DIR/Screenshot as the save path")
+	rootCMD.Flags().BoolVar(&screen_shot, "screenshot", false, "opens flameshot gui with the XDG_USER_DIR/Screenshot as the save path.")
 
-	rootCMD.Flags().BoolVar(&batt_mon, "battery-monitor", false, "continously checks battery level and notifies the user when its lower")
+	rootCMD.Flags().BoolVar(&batt_mon, "battery-monitor", false, "continously checks battery level and notifies the user when its lower.")
 
-	rootCMD.Flags().BoolVar(&monitor_daemon, "monitor-daemon", false, "continuosly checks for new/removed monitors and changes the brightness based on the focused monitor.\n NOTE: does not support OLED or LED displays. Only supports LCD displays (displays with backlight)")
+	rootCMD.Flags().BoolVar(&monitor_daemon, "monitor-daemon", false, "continuosly checks for new/removed monitors and changes the brightness based on the focused monitor.\n NOTE: does not support OLED or LED displays. Only supports LCD displays (displays with backlight).")
 
-	rootCMD.Flags().BoolVarP(&version, "version", "v", false, "prints the package version")
+	rootCMD.Flags().BoolVarP(&version, "version", "v", false, "prints the package version.")
 
-	rootCMD.Flags().BoolVarP(&update, "update", "u", false, "for updating the package")
+	rootCMD.Flags().BoolVarP(&update, "update", "u", false, "for updating the package.")
 
 	initializeThemesFlags()
 	initializeWallsFlags()

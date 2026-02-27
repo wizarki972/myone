@@ -5,15 +5,19 @@ import (
 	"github.com/wizarki972/myone/internal/modules/themer"
 )
 
-var update_themes bool
+var update_themes, force_update_themes bool
 var apply_theme string
 
 var themesCMD = &cobra.Command{
 	Use:   "theme",
 	Short: "manage themes here...",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if update_themes {
-			themer.Download()
+		if update_themes && !force_update_themes {
+			themer.NewThemer("default").Update()
+		}
+
+		if force_update_themes {
+			themer.NewThemer("default").Download()
 		}
 
 		if len(apply_theme) > 0 {
@@ -25,9 +29,11 @@ var themesCMD = &cobra.Command{
 }
 
 func initializeThemesFlags() {
-	themesCMD.Flags().BoolVarP(&update_themes, "update", "u", false, "updates all the local themes")
+	themesCMD.Flags().BoolVarP(&update_themes, "update", "u", false, "updates all the local themes.")
 
-	themesCMD.Flags().StringVarP(&apply_theme, "apply", "a", "", "Applies the specified theme")
+	themesCMD.Flags().BoolVar(&force_update_themes, "force-update", false, "Re-downloads all themes and installs it.")
+
+	themesCMD.Flags().StringVarP(&apply_theme, "apply", "a", "", "Applies the specified theme.")
 
 	rootCMD.AddCommand(themesCMD)
 }

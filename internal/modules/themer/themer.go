@@ -1,9 +1,11 @@
 package themer
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/wizarki972/myone/internal/utils/config"
@@ -11,6 +13,8 @@ import (
 	"github.com/wizarki972/myone/internal/utils/fldir"
 	"github.com/wizarki972/myone/internal/utils/user"
 )
+
+// Maybe make choosing and installing themes - in future
 
 const THEMES_ZIP_URL = "https://raw.githubusercontent.com/wizarki972/mythemes/main/zips/themes.zip"
 const VERSION_URL = "https://raw.githubusercontent.com/wizarki972/mythemes/main/VERSION"
@@ -20,41 +24,70 @@ func NewThemer(theme_name string) *Themer {
 		return &Themer{
 			ThemeName: config.DEFAULT_THEME,
 			homeDir:   user.GetHomeDir(),
+			themeDir:  filepath.Join(config.GetDirPathFor("base"), "themes"),
 		}
 	}
 
 	return &Themer{
 		ThemeName: theme_name,
 		homeDir:   user.GetHomeDir(),
+		themeDir:  filepath.Join(config.GetDirPathFor("base"), "themes"),
 	}
 }
 
 type Themer struct {
 	ThemeName string
 	homeDir   string
+	themeDir  string
 }
 
-func Download() {
-	// MAIN AREA CHECK
-	themes_path := config.GetDirPathFor("themes")
-	fldir.CreateDirectory(themes_path)
+func (t *Themer) Update() {
+	var local_v, repo_v float64
+	var local_sv, repo_sv int
 
+	// local version
+	var version_path = filepath.Join(t.themeDir, "VERSION")
+	verStr, err := fldir.ReadFileAsString(version_path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Println("No themes found. Downloading themes...")
+			t.Download()
+			return
+		}
+		panic(err)
+	}
+	local_v, local_sv = version_parser(verStr)
+
+	// repo version
+	verStr = fldir.ReadTextFileFromURL(VERSION_URL, false, "")
+	repo_v, repo_sv = version_parser(verStr)
+
+	if (local_v < repo_v) || (local_v == repo_v && local_sv < repo_sv) {
+		t.Download()
+		return
+	} else {
+		fmt.Println("Themes are already up-to-date.")
+	}
+
+}
+
+func (t *Themer) Download() {
 	// CACHE PATH CHECK
-	cache_dir := filepath.Join(config.GetDirPathFor("cache"), "themes")
-	cache_path := filepath.Join(config.GetDirPathFor("cache"), "themes/themes.zip")
+	cache_dir := filepath.Join(config.CACHE_BASE_DIR, "themes")
+	cache_path := filepath.Join(config.CACHE_BASE_DIR, "themes/themes.zip")
 	fldir.CreateDirectory(cache_dir)
 
 	// DOWNLOADING ZIP
-	fldir.DownloadURL(THEMES_ZIP_URL, cache_path)
+	fldir.DownloadURL(THEMES_ZIP_URL, cache_path, true)
 
 	// REMOVING CURRENTLY DOWNLOADED VERSION
-	if err := os.RemoveAll(themes_path); err != nil {
+	if err := os.RemoveAll(t.themeDir); err != nil {
 		slog.Error("Failed to remove themes ==> " + err.Error())
 	}
-	fldir.CreateDirectory(themes_path)
+	fldir.CreateDirectory(t.themeDir)
 
-	// Moving downloaded files to main area
-	fldir.Unzip(cache_path, themes_path)
+	// Moving downloaded files to all themes directory
+	fldir.Unzip(cache_path, t.themeDir)
 
 	slog.Info("Cleaning Up...")
 	if err := os.RemoveAll(cache_dir); err != nil {
@@ -63,14 +96,13 @@ func Download() {
 }
 
 func (t *Themer) Install() {
-	themepath := filepath.Join(config.GetDirPathFor("themes"), t.ThemeName)
+	themepath := filepath.Join(t.themeDir, t.ThemeName)
 	if !fldir.IsPathExist(themepath) {
 		slog.Info("Theme not found, trying to update themes...")
-		Download()
+		t.Download()
 	}
 
 	t.copy_files(themepath, "")
-
 }
 
 func (t *Themer) copy_files(path, suffix string) {
@@ -110,4 +142,17 @@ func fill(current_path, save_path string) {
 		file = strings.ReplaceAll(file, old, new)
 	}
 	fldir.WriteFile(file, save_path)
+}
+
+func version_parser(version string) (float64, int) {
+	version_parts := strings.Split(version, "-")
+	version_fl, err := strconv.ParseFloat(strings.SplitN(version_parts[0], ".", 2)[1], 64)
+	if err != nil {
+		panic(err)
+	}
+	sub_version, err := strconv.Atoi(strings.TrimSpace(version_parts[1]))
+	if err != nil {
+		panic(err)
+	}
+	return version_fl, sub_version
 }
