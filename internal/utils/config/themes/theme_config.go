@@ -9,6 +9,7 @@ import (
 )
 
 const CURRENT_WALL_NAME = ".wallpaper"
+const CURRENT_THEME_NAME_ENTRY = ".current-theme"
 
 var ThemePlaceholderValues = map[string]string{
 	"${WALLPAPER_PATH}":   filepath.Join(config.BASE_DIR, CURRENT_WALL_NAME),

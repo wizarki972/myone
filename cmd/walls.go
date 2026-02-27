@@ -5,7 +5,7 @@ import (
 	"github.com/wizarki972/myone/internal/modules/walls"
 )
 
-var list_walls, list_repo, wall_menu bool
+var list_walls, wall_menu bool
 var install_wall_pack, remove_wall_pack string
 
 var wallpaperCMD = &cobra.Command{
@@ -13,24 +13,22 @@ var wallpaperCMD = &cobra.Command{
 	Short: "manages wallpapers packs",
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		if list_walls {
-			walls.NewWall().ListInstalled()
-		}
+		wall := walls.NewWall()
 
-		if list_repo {
-			walls.NewWall().ListDownloadables()
+		if list_walls {
+			wall.List()
 		}
 
 		if wall_menu {
-			walls.NewWall().ShowWallpaperChangeMenu()
+			wall.ShowWallpaperChangeMenu()
 		}
 
 		if len(install_wall_pack) > 0 {
-			walls.NewWall().Install(install_wall_pack)
+			wall.Install(install_wall_pack)
 		}
 
 		if len(remove_wall_pack) > 0 {
-			walls.NewWall().Remove(remove_wall_pack)
+			wall.Remove(remove_wall_pack)
 		}
 
 		return nil
@@ -38,15 +36,13 @@ var wallpaperCMD = &cobra.Command{
 }
 
 func initializeWallsFlags() {
-	wallpaperCMD.Flags().BoolVarP(&list_walls, "list-installed", "l", false, "Lists installed wallpaper packs")
+	wallpaperCMD.Flags().BoolVarP(&list_walls, "list", "l", false, "lists every repo, and installed/update status.")
 
-	wallpaperCMD.Flags().BoolVar(&list_repo, "list-repo", false, "Lists wallpaper packs available in the repo")
+	wallpaperCMD.Flags().StringVarP(&install_wall_pack, "install", "i", "", "Installs mentioned packs from the repo.")
 
-	wallpaperCMD.Flags().StringVarP(&install_wall_pack, "install", "i", "", "Installs mentioned packs from the repo")
+	wallpaperCMD.Flags().StringVarP(&remove_wall_pack, "remove", "r", "", "Removes the mentioned wall pack from the system.")
 
-	wallpaperCMD.Flags().StringVarP(&remove_wall_pack, "remove", "r", "", "Removes the mentioned wall pack from the system")
-
-	wallpaperCMD.Flags().BoolVarP(&wall_menu, "menu", "m", false, "Shows a rofi menu for the wallpaper choosing")
+	wallpaperCMD.Flags().BoolVarP(&wall_menu, "menu", "m", false, "Shows a rofi menu for the wallpaper choosing.")
 
 	// SET WALLPAPER
 

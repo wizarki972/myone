@@ -2,6 +2,7 @@ package walls
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -29,11 +30,11 @@ type index struct {
 }
 
 func NewWall() *Wall {
-	wallDir := filepath.Join(config.GetDirPathFor("base"), "walls")
+	wall_dir := filepath.Join(config.GetDirPathFor("base"), "walls")
 
 	return &Wall{
-		wallDir:            wallDir,
-		indexPath:          filepath.Join(wallDir, "index.txt"),
+		wallDir:            wall_dir,
+		indexPath:          filepath.Join(wall_dir, "index.txt"),
 		local_indices:      make(map[string]*index),
 		is_local_refreshed: false,
 		repo_indices:       make(map[string]*index),
@@ -58,6 +59,7 @@ func (w *Wall) RefreshLocalIndices() {
 
 	local_index_path := w.indexPath
 	if !fldir.IsPathExist(local_index_path) {
+		fldir.CreateDirectory(w.wallDir)
 		if _, err := os.Create(local_index_path); err != nil {
 			panic(err)
 		}
@@ -118,36 +120,55 @@ func (w *Wall) RefreshRepoIndices() {
 	w.is_repo_refreshed = true
 }
 
-func (w *Wall) ListDownloadables() {
-	w.RefreshRepoIndices()
+func (w *Wall) List() {
 	w.RefreshLocalIndices()
+	w.RefreshRepoIndices()
 
-	fmt.Println("PACKS FOR DOWNLOAD:")
+	fmt.Println("PACKS:")
 	for key, value := range w.repo_indices {
 		_, ok := w.local_indices[key]
-		if ok && w.local_indices[key].Version < value.Version {
-			fmt.Printf("%.2f - %s [UPDATE AVAILABLE current version %.2f]\n", value.Version, key, w.local_indices[key].Version)
-		}
 
-		if !ok {
+		switch {
+		case ok && w.local_indices[key].Version < value.Version:
+			fmt.Printf("%.2f - %s [UPDATE AVAILABLE current version %.2f]\n", value.Version, key, w.local_indices[key].Version)
+		case ok:
+			fmt.Printf("%.2f - %s [INSTALLED]\n", value.Version, key)
+		default:
 			fmt.Printf("%.2f - %s\n", value.Version, key)
 		}
 	}
 }
 
-func (w *Wall) ListInstalled() {
-	w.RefreshLocalIndices()
-	w.RefreshRepoIndices()
+// func (w *Wall) ListDownloadables() {
+// 	w.RefreshRepoIndices()
+// 	w.RefreshLocalIndices()
 
-	fmt.Println("INSTALLED WALLPAPER PACKAGES:")
-	for key, value := range w.local_indices {
-		if w.repo_indices[key].Version > value.Version {
-			fmt.Printf("%.2f - %s [UPDATE AVAILABLE new version %.2f]\n", value.Version, key, w.repo_indices[key].Version)
-			continue
-		}
-		fmt.Printf("%.2f - %s\n", value.Version, key)
-	}
-}
+// 	fmt.Println("PACKS FOR DOWNLOAD:")
+// 	for key, value := range w.repo_indices {
+// 		_, ok := w.local_indices[key]
+// 		if ok && w.local_indices[key].Version < value.Version {
+// 			fmt.Printf("%.2f - %s [UPDATE AVAILABLE current version %.2f]\n", value.Version, key, w.local_indices[key].Version)
+// 		}
+
+// 		if !ok {
+// 			fmt.Printf("%.2f - %s\n", value.Version, key)
+// 		}
+// 	}
+// }
+
+// func (w *Wall) ListInstalled() {
+// 	w.RefreshLocalIndices()
+// 	w.RefreshRepoIndices()
+
+// 	fmt.Println("INSTALLED WALLPAPER PACKAGES:")
+// 	for key, value := range w.local_indices {
+// 		if w.repo_indices[key].Version > value.Version {
+// 			fmt.Printf("%.2f - %s [UPDATE AVAILABLE new version %.2f]\n", value.Version, key, w.repo_indices[key].Version)
+// 			continue
+// 		}
+// 		fmt.Printf("%.2f - %s\n", value.Version, key)
+// 	}
+// }
 
 func (w *Wall) Remove(pack_name string) {
 	w.RefreshLocalIndices()
@@ -238,6 +259,12 @@ func rofiWallMenuBuilder(dir_path, mode string) string {
 	}
 
 	var rofi_input = ""
+	if len(entries) == 0 {
+		command := "notify-send 'No Wallpapers' 'Install a wallpaper package.\nRun `myone wallpapers --list-repo` command to see available packages.'"
+		cmds.ExecCommandNoFeedback(command)
+		panic(errors.New("No wallpaper package is installed"))
+	}
+
 	for _, entry := range entries {
 		if mode == "dir" {
 			if entry.IsDir() {

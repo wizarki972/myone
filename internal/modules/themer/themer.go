@@ -1,6 +1,7 @@
 package themer
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -20,19 +21,45 @@ const THEMES_ZIP_URL = "https://raw.githubusercontent.com/wizarki972/mythemes/ma
 const VERSION_URL = "https://raw.githubusercontent.com/wizarki972/mythemes/main/VERSION"
 
 func NewThemer(theme_name string) *Themer {
-	if theme_name == "default" {
-		return &Themer{
-			ThemeName: config.DEFAULT_THEME,
-			homeDir:   user.GetHomeDir(),
-			themeDir:  filepath.Join(config.GetDirPathFor("base"), "themes"),
-		}
+	base := config.GetDirPathFor("base")
+
+	var t = &Themer{
+		homeDir:  user.GetHomeDir(),
+		themeDir: filepath.Join(base, "themes"),
 	}
 
-	return &Themer{
-		ThemeName: theme_name,
-		homeDir:   user.GetHomeDir(),
-		themeDir:  filepath.Join(config.GetDirPathFor("base"), "themes"),
+	// if a theme name is given
+	if len(theme_name) > 0 {
+		if theme_name == "default" {
+			t.ThemeName = config.DEFAULT_THEME
+		} else {
+			t.ThemeName = theme_name
+		}
+		return t
 	}
+
+	current_theme_path := filepath.Join(base, themes_config.CURRENT_THEME_NAME_ENTRY)
+	if fldir.IsPathExist(current_theme_path) {
+
+		current, err := fldir.ReadFileAsString(current_theme_path)
+		if err != nil {
+			// Change the error to something like `cannot get current theme`
+			panic(err)
+		}
+		t.ThemeName = strings.TrimSpace(current)
+
+		// second check for errors
+		if len(t.ThemeName) == 0 {
+			panic(errors.New("cannot get currently applied theme"))
+		}
+
+		return t
+
+	} else {
+		t.ThemeName = config.DEFAULT_THEME
+		return t
+	}
+
 }
 
 type Themer struct {
@@ -74,7 +101,7 @@ func (t *Themer) Update() {
 func (t *Themer) Download() {
 	// CACHE PATH CHECK
 	cache_dir := filepath.Join(config.CACHE_BASE_DIR, "themes")
-	cache_path := filepath.Join(config.CACHE_BASE_DIR, "themes/themes.zip")
+	cache_path := filepath.Join(cache_dir, "themes.zip")
 	fldir.CreateDirectory(cache_dir)
 
 	// DOWNLOADING ZIP
@@ -103,6 +130,7 @@ func (t *Themer) Install() {
 	}
 
 	t.copy_files(themepath, "")
+	fldir.WriteFile(t.ThemeName, filepath.Join(config.GetDirPathFor("base"), themes_config.CURRENT_THEME_NAME_ENTRY))
 }
 
 func (t *Themer) copy_files(path, suffix string) {
