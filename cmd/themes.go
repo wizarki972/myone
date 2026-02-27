@@ -9,7 +9,7 @@ var update_themes, force_update_themes bool
 var apply_theme string
 
 var themesCMD = &cobra.Command{
-	Use:   "theme",
+	Use:   "themes",
 	Short: "manage themes here...",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if update_themes && !force_update_themes {
