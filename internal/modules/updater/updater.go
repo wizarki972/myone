@@ -2,7 +2,7 @@ package updater
 
 import (
 	"fmt"
-	"log/slog"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -16,40 +16,69 @@ import (
 const VERSION_URL = "https://raw.githubusercontent.com/wizarki972/myone/main/VERSION"
 const DOWNLOAD_URL = "https://github.com/wizarki972/myone/archive/refs/heads/main.zip"
 
-func Update() {
+// NOTE
+// MYONE_INTERNAL environment variable is used to separate a background update check from a command executed by the user
 
+func isLatest() (bool, string) {
 	// Getting latest version from repo
-	verStr := fldir.ReadTextFileFromURL(VERSION_URL, false, "")
-	verStr = strings.SplitN(strings.Split(verStr, "-")[0], ".", 2)[1]
-	out, err := strconv.ParseFloat(verStr, 64)
+	ver_str := fldir.ReadTextFileFromURL(VERSION_URL, false, "")
+	out, err := strconv.ParseFloat(strings.SplitN(strings.Split(ver_str, "-")[0], ".", 2)[1], 64)
 	if err != nil {
 		panic(err)
 	}
+	return out == config.VERSION_INT, ver_str
+}
+
+func Update(gui bool) {
+	ok, latest := isLatest()
 
 	// If the version in repo is not the one installed then it will perform update/downgrade
 	// This allows downgrading to last stable in case of bugs by rolling back to older releases in repo.
-	if !(out == config.VERSION_INT) {
-		// Cache directory paths
-		cache_dir := filepath.Join(config.CACHE_BASE_DIR, "update")
-		cache_path := filepath.Join(cache_dir, "repo.zip")
+	if !ok {
+		if gui {
+			cmd := exec.Command("sh", "-c", "MYONE_INTERNAL=0 kitty --title MyOne-Update -e myone --update")
+			cmd.SysProcAttr = &syscall.SysProcAttr{
+				Setsid: true,
+			}
+			cmd.Stderr = nil
+			cmd.Stdout = nil
+			cmd.Stdin = nil
 
-		// Need to change this line
-		slog.Info("Downloading Files...")
-		fldir.DownloadURL(DOWNLOAD_URL, cache_path, false)
-		fldir.Unzip(cache_path, cache_dir)
+			if err := cmd.Run(); err != nil {
+				panic(err)
+			}
+		} else {
+			// getting user consent
+			fmt.Printf("Update available %s ==> 0.%s\n", config.VERSION, latest)
+			fmt.Print("Do you wish to update? [Y/n]: ")
 
-		// COMMAND
-		cmd := exec.Command("sh", "-c", "make install_pkexec")
-		cmd.Dir = filepath.Join(cache_dir, "myone-main")
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			Setsid: true,
-		}
-		cmd.Stdout = nil
-		cmd.Stdin = nil
-		cmd.Stderr = nil
+			var response string
+			fmt.Scanln(&response)
+			response = strings.ToLower(response)
+			if response == "" || response == "y" || response == "yes" {
+				// Cache directory paths
+				cache_dir := filepath.Join(config.CACHE_BASE_DIR, "update")
+				cache_path := filepath.Join(cache_dir, "repo.zip")
 
-		if err := cmd.Run(); err != nil {
-			panic(err)
+				fmt.Println("DOWNLOADING...")
+				fldir.DownloadURL(DOWNLOAD_URL, cache_path, false)
+				fldir.Unzip(cache_path, cache_dir)
+
+				// COMMAND
+				cmd := exec.Command("sh", "-c", "make install")
+				cmd.Dir = filepath.Join(cache_dir, "myone-main")
+				cmd.Stdout = os.Stdout
+				cmd.Stdin = os.Stdin
+				cmd.Stderr = os.Stderr
+
+				if err := cmd.Run(); err != nil {
+					os.RemoveAll(cache_dir)
+					panic(err)
+				}
+
+				// cleaning up cache
+				os.RemoveAll(cache_dir)
+			}
 		}
 	} else {
 		fmt.Println("Already on the latest build.")

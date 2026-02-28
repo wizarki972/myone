@@ -51,7 +51,12 @@ var rootCMD = &cobra.Command{
 		}
 
 		if update {
-			updater.Update()
+			if os.Getenv("MYONE_INTERNAL") == "1" {
+				updater.Update(true)
+			} else {
+				updater.Update(false)
+			}
+
 		}
 
 		return nil

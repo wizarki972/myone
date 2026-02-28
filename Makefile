@@ -8,7 +8,7 @@ GO = go
 all: install
 
 build:
-	@echo "==> Building Binary..."
+	@echo "BUILDING..."
 	@mkdir -p ./build
 	$(GO) build -o ./build/$(BINARY_NAME)
 	chmod +x ./build/$(BINARY_NAME)
@@ -30,15 +30,6 @@ install: build_cache
 
 	$(MAKE) start
 
-install_pkexec: build_cache
-	@echo "PLACING FILES IN RIGHT PLACES..."
-	-mkdir -p $(SCRIPTS_DIR)
-	cp ./scripts/* $(SCRIPTS_DIR)
-	chmod +x $(SCRIPTS_DIR)/*
-	
-	@echo "INSTALLING..."
-	pkexec install -Dm755 $(CACHE_DIR)/build/$(BINARY_NAME) $(INSTALL_DIR)/$(BINARY_NAME)
-
 start:
 	@echo "KILLING OLD PROCESSES..."
 	-killall -9 $(BINARY_NAME)
@@ -51,9 +42,4 @@ clean:
 	@echo "CLEANING UP..."
 	-rm -rf $(CACHE_DIR)/build
 
-run: build_cache
-	@echo "RUNNING..."
-	$(CACHE_DIR)/build/$(BINARY_NAME)
-	$(MAKE) clean
-
-.PHONY: all build build_cache install install_pkexec start clean run
+.PHONY: all build build_cache install install_pkexec start clean
