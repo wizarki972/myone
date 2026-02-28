@@ -50,9 +50,10 @@ func ReadFileAsStringNoError(path string) string {
 }
 
 // rename this func to WriteStringtTFile
-func WriteFile(content, path string) {
+func WriteStringToFile(content, path string) {
 	CreateDirectory(filepath.Dir(path))
-	if err := os.WriteFile(path, []byte(content), os.ModePerm); err != nil {
+	// 0664 - 6 (r+w), 4(r)
+	if err := os.WriteFile(path, []byte(content), 0664); err != nil {
 		panic(err)
 	}
 }

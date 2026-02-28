@@ -93,7 +93,7 @@ func Logout(layout int) {
 	}
 
 	cssPath := filepath.Join(home, ".cache/myone/logout/style.css")
-	fldir.WriteFile(stylesContent, cssPath)
+	fldir.WriteStringToFile(stylesContent, cssPath)
 
 	command := fmt.Sprintf("wlogout -b %d -c 0 -r 0 -m 0 --layout %s --css %s --protocol layer-shell", cols, layoutPath, cssPath)
 	if err = cmds.ExecComamndWithError(command); err != nil {

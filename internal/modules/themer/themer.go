@@ -130,7 +130,7 @@ func (t *Themer) Install() {
 	}
 
 	t.copy_files(themepath, "")
-	fldir.WriteFile(t.ThemeName, filepath.Join(config.GetDirPathFor("base"), themes_config.CURRENT_THEME_NAME_ENTRY))
+	fldir.WriteStringToFile(t.ThemeName, filepath.Join(config.GetDirPathFor("base"), themes_config.CURRENT_THEME_NAME_ENTRY))
 }
 
 func (t *Themer) copy_files(path, suffix string) {
@@ -169,7 +169,7 @@ func fill(current_path, save_path string) {
 	for old, new := range themes_config.ThemePlaceholderValues {
 		file = strings.ReplaceAll(file, old, new)
 	}
-	fldir.WriteFile(file, save_path)
+	fldir.WriteStringToFile(file, save_path)
 }
 
 func version_parser(version string) (float64, int) {

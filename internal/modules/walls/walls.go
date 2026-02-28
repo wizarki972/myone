@@ -213,7 +213,7 @@ func (w *Wall) WriteIndex() {
 		fmt.Fprintf(&b, "%.2f = %s = %s\n", v.Version, v.Name, v.ZipName)
 	}
 
-	fldir.WriteFile(b.String(), w.indexPath)
+	fldir.WriteStringToFile(b.String(), w.indexPath)
 }
 
 func (w *Wall) ShowWallpaperChangeMenu() {
