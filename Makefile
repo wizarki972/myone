@@ -23,7 +23,7 @@ install: build_cache
 	@echo "PLACING FILES IN RIGHT PLACES..."
 	-mkdir -p $(SCRIPTS_DIR)
 	cp ./scripts/* $(SCRIPTS_DIR)
-	chmod +x $(SCRIPTS_DIR)
+	chmod +x $(SCRIPTS_DIR)/*
 	
 	@echo "INSTALLING..."
 	sudo install -Dm755 $(CACHE_DIR)/build/$(BINARY_NAME) $(INSTALL_DIR)/$(BINARY_NAME)
@@ -34,7 +34,7 @@ install_pkexec: build_cache
 	@echo "PLACING FILES IN RIGHT PLACES..."
 	-mkdir -p $(SCRIPTS_DIR)
 	cp ./scripts/* $(SCRIPTS_DIR)
-	chmod +x $(SCRIPTS_DIR)
+	chmod +x $(SCRIPTS_DIR)/*
 	
 	@echo "INSTALLING..."
 	pkexec install -Dm755 $(CACHE_DIR)/build/$(BINARY_NAME) $(INSTALL_DIR)/$(BINARY_NAME)
