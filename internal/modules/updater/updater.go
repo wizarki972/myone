@@ -48,6 +48,8 @@ func Update(gui bool) {
 				panic(err)
 			}
 		} else {
+			fmt.Print(config.MYONE_ASCII)
+
 			// getting user consent
 			fmt.Printf("Update available %s ==> 0.%s\n", config.VERSION, latest)
 			fmt.Print("Do you wish to update? [Y/n]: ")
