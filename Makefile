@@ -17,7 +17,7 @@ LDFLAGS := -X "github.com/wizarki972/myone/internal/utils/common.VERSION=${VERSI
 EXTRA_FLAGS ?= -buildmode=pie
 
 BASE_DIRECTORY = ~/.local/share/myone
-SCRIPTS_DIRECTORY = $(BASE_DIR)/scripts
+SCRIPTS_DIRECTORY = $(BASE_DIRECTORY)/scripts
 
 .PHONY: all
 all: install
