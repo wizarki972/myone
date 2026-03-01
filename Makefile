@@ -45,7 +45,6 @@ install: build
 	@cp ./scripts/* $(SCRIPTS_DIRECTORY)
 	@chmod +x $(SCRIPTS_DIRECTORY)/*
 
-
 .PHONY: start
 start:
 	@echo "KILLING OLD PROCESSES..."
