@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/wizarki972/myone/internal/utils/common"
 	"github.com/wizarki972/myone/internal/utils/config"
 	"github.com/wizarki972/myone/internal/utils/fldir"
 )
@@ -26,7 +27,7 @@ func isLatest() (bool, string) {
 	if err != nil {
 		panic(err)
 	}
-	return out == config.VERSION_INT, ver_str
+	return out == common.GetVersionFloat(), ver_str
 }
 
 func Update(gui bool) {
@@ -48,10 +49,10 @@ func Update(gui bool) {
 				panic(err)
 			}
 		} else {
-			fmt.Print(config.MYONE_ASCII)
+			fmt.Print(common.MYONE_ASCII)
 
 			// getting user consent
-			fmt.Printf("Update available %s ==> 0.%s\n", config.VERSION, latest)
+			fmt.Printf("Update available %s ==> 0.%s\n", common.VERSION, latest)
 			fmt.Print("Do you wish to update? [Y/n]: ")
 
 			var response string

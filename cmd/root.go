@@ -11,7 +11,7 @@ import (
 	"github.com/wizarki972/myone/internal/modules/logout"
 	"github.com/wizarki972/myone/internal/modules/screenshot"
 	"github.com/wizarki972/myone/internal/modules/updater"
-	"github.com/wizarki972/myone/internal/utils/config"
+	"github.com/wizarki972/myone/internal/utils/common"
 )
 
 var brightness, vol_notify string
@@ -47,7 +47,7 @@ var rootCMD = &cobra.Command{
 		}
 
 		if version {
-			fmt.Println(config.VERSION)
+			fmt.Println(common.VERSION)
 		}
 
 		if update {

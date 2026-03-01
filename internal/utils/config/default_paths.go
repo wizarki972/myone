@@ -14,7 +14,7 @@ var CACHE_BASE_DIR = filepath.Join(user.GetHomeDir(), ".cache/myone")
 var PseudoPaths = map[string]string{
 	"base":       BASE_DIR,
 	"config":     filepath.Join(CONFIG_DIR, "config.toml"),
-	"scripts":    filepath.Join(BASE_DIR, "bin"),
+	"scripts":    filepath.Join(BASE_DIR, "scripts"),
 	"git_clones": filepath.Join(CACHE_BASE_DIR, "git_clones"),
 	"walls":      filepath.Join(BASE_DIR, "mywalls"),
 }
