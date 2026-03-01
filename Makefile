@@ -8,7 +8,7 @@ GO = go
 DESTDIR :=
 PREFIX := /usr/local
 
-VERSION := 0.7.6
+VERSION := 0.7.7
 BUILD := alpha
 
 FLAGS ?= -trimpath -mod=readonly -modcacherw
