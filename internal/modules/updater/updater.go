@@ -68,7 +68,7 @@ func Update(gui bool) {
 				fldir.Unzip(cache_path, cache_dir)
 
 				// COMMAND
-				cmd := exec.Command("sh", "-c", "make install")
+				cmd := exec.Command("sh", "-c", "make full_install")
 				cmd.Dir = filepath.Join(cache_dir, "myone-main")
 				cmd.Stdout = os.Stdout
 				cmd.Stdin = os.Stdin
