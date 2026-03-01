@@ -22,7 +22,7 @@ const DOWNLOAD_URL = "https://github.com/wizarki972/myone/archive/refs/heads/mai
 func isLatest() (bool, string) {
 	// Getting latest version from repo
 	ver_str := fldir.ReadTextFileFromURL(VERSION_URL, false, "")
-	out, err := strconv.ParseFloat(strings.SplitN(strings.Split(ver_str, "-")[0], ".", 2)[1], 64)
+	out, err := strconv.ParseFloat(strings.SplitN(ver_str, ".", 2)[1], 64)
 	if err != nil {
 		panic(err)
 	}
