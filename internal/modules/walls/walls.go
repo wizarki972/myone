@@ -129,11 +129,11 @@ func (w *Wall) List() {
 
 		switch {
 		case ok && w.local_indices[key].Version < value.Version:
-			fmt.Printf("%.2f - %s [UPDATE AVAILABLE current version %.2f]\n", value.Version, key, w.local_indices[key].Version)
+			fmt.Printf("* %s - %.2f [UPDATE AVAILABLE current version %.2f]\n", key, value.Version, w.local_indices[key].Version)
 		case ok:
-			fmt.Printf("%.2f - %s [INSTALLED]\n", value.Version, key)
+			fmt.Printf("* %s - %.2f [INSTALLED]\n", key, value.Version)
 		default:
-			fmt.Printf("%.2f - %s\n", value.Version, key)
+			fmt.Printf("* %s - %.2f\n", key, value.Version)
 		}
 	}
 }
