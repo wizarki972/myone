@@ -10,7 +10,6 @@ import (
 	"syscall"
 
 	"github.com/wizarki972/myone/internal/utils/common"
-	"github.com/wizarki972/myone/internal/utils/config"
 	"github.com/wizarki972/myone/internal/utils/fldir"
 )
 
@@ -60,7 +59,7 @@ func Update(gui bool) {
 			response = strings.ToLower(response)
 			if response == "" || response == "y" || response == "yes" {
 				// Cache directory paths
-				cache_dir := filepath.Join(config.CACHE_BASE_DIR, "update")
+				cache_dir := filepath.Join(fldir.GetHomeDir(), common.CACHE_DIR, "update")
 				cache_path := filepath.Join(cache_dir, "repo.zip")
 
 				fmt.Println("DOWNLOADING...")

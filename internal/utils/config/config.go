@@ -6,14 +6,11 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/wizarki972/myone/internal/utils/fldir"
-	"github.com/wizarki972/myone/internal/utils/user"
 )
-
-const DEFAULT_THEME = "tokyonight"
 
 var Default_Config = Config{
 	general: General{
-		config_path: filepath.Join(user.GetHomeDir(), ".config/myone/config.toml"),
+		config_path: filepath.Join(fldir.GetHomeDir(), ".config/myone/config.toml"),
 	},
 }
 

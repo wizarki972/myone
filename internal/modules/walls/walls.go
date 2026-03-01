@@ -4,24 +4,25 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/wizarki972/myone/internal/utils/cmds"
-	"github.com/wizarki972/myone/internal/utils/config"
-	themes_config "github.com/wizarki972/myone/internal/utils/config/themes"
+	"github.com/wizarki972/myone/internal/utils/common"
 	"github.com/wizarki972/myone/internal/utils/fldir"
-	"github.com/wizarki972/myone/internal/utils/user"
 )
 
 // EXPLORE FOR APPENDING STRINGS IN LOOP - WriteIndex
-
 const ZIPS_DIR_URL = "https://raw.githubusercontent.com/wizarki972/mywalls/main/zips/"
 const INDEX_URL = "https://raw.githubusercontent.com/wizarki972/mywalls/main/index.txt"
 const VERSION_URL = "https://raw.githubusercontent.com/wizarki972/mywalls/main/VERSION"
+
+var WALLS_DIR = filepath.Join(fldir.GetHomeDir(), common.BASE_DIR, "walls")
 
 type index struct {
 	Version float64
@@ -30,11 +31,9 @@ type index struct {
 }
 
 func NewWall() *Wall {
-	wall_dir := filepath.Join(config.GetDirPathFor("base"), "walls")
-
 	return &Wall{
-		wallDir:            wall_dir,
-		indexPath:          filepath.Join(wall_dir, "index.txt"),
+		wallDir:            WALLS_DIR,
+		indexPath:          filepath.Join(WALLS_DIR, "index.txt"),
 		local_indices:      make(map[string]*index),
 		is_local_refreshed: false,
 		repo_indices:       make(map[string]*index),
@@ -185,8 +184,15 @@ func (w *Wall) Install(pack_name string) {
 	w.RefreshRepoIndices()
 	w.RefreshLocalIndices()
 
+	// Pack's existence
+	pack, ok := w.repo_indices[capitalizeFirst(pack_name)]
+	if !ok {
+		slog.Error(fmt.Sprintf("%s pack not available", pack_name))
+		os.Exit(1)
+	}
+
 	// DOWNLOADING WALL PACK
-	cache_path := filepath.Join(config.CACHE_BASE_DIR, "walls", w.repo_indices[pack_name].ZipName)
+	cache_path := filepath.Join(fldir.GetHomeDir(), common.CACHE_DIR, "walls", pack.ZipName)
 	fldir.DownloadURL(ZIPS_DIR_URL+w.repo_indices[pack_name].ZipName, cache_path, true)
 
 	// UNZIPPING PACK
@@ -219,9 +225,11 @@ func (w *Wall) WriteIndex() {
 func (w *Wall) ShowWallpaperChangeMenu() {
 	w.RefreshLocalIndices()
 
+	home := fldir.GetHomeDir()
+
 	// PACK MENU
 	rofi_input := rofiWallMenuBuilder(w.wallDir, "dir")
-	command := fmt.Sprintf("printf '%s' | rofi -dmenu -theme %s/.config/rofi/themes/wallpapers.rasi", rofi_input, user.GetHomeDir())
+	command := fmt.Sprintf("printf '%s' | rofi -dmenu -theme %s/.config/rofi/themes/wallpapers.rasi", rofi_input, home)
 	selected_pack, err := cmds.ExecCommand(command)
 	if err != nil {
 		panic(err)
@@ -236,7 +244,7 @@ func (w *Wall) ShowWallpaperChangeMenu() {
 		"-show-icons",
 		"-i",
 		"-theme",
-		filepath.Join(user.GetHomeDir(), ".config/rofi/themes/wallpapers.rasi"),
+		filepath.Join(home, ".config/rofi/themes/wallpapers.rasi"),
 	)
 	cmd.Stdin = strings.NewReader(rofi_input)
 	selection, err := cmd.Output()
@@ -245,8 +253,9 @@ func (w *Wall) ShowWallpaperChangeMenu() {
 	}
 
 	// SETTING WALL
-	fldir.CopyFile(filepath.Join(pack_dir, strings.TrimSpace(string(selection))), filepath.Join(config.GetDirPathFor("base"), themes_config.CURRENT_WALL_NAME))
-	command = fmt.Sprintf("swww img %s --transition-type fade --transition-duration 0.5", filepath.Join(config.GetDirPathFor("base"), themes_config.CURRENT_WALL_NAME))
+	current_wall_path := filepath.Join(home, common.BASE_DIR, CURRENT_WALL_NAME)
+	fldir.CopyFile(filepath.Join(pack_dir, strings.TrimSpace(string(selection))), current_wall_path)
+	command = fmt.Sprintf("swww img %s --transition-type fade --transition-duration 0.5", current_wall_path)
 	if err = cmds.ExecComamndWithError(command); err != nil {
 		panic(err)
 	}
@@ -280,4 +289,12 @@ func rofiWallMenuBuilder(dir_path, mode string) string {
 		}
 	}
 	return rofi_input
+}
+
+func capitalizeFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	r, size := utf8.DecodeRuneInString(s)
+	return strings.ToUpper(string(r)) + s[size:]
 }

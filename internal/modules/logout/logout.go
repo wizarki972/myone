@@ -8,7 +8,6 @@ import (
 	"github.com/wizarki972/myone/internal/modules/display"
 	"github.com/wizarki972/myone/internal/utils/cmds"
 	"github.com/wizarki972/myone/internal/utils/fldir"
-	"github.com/wizarki972/myone/internal/utils/user"
 )
 
 func GetLogoutValues(layout int) (map[string]string, error) {
@@ -26,7 +25,7 @@ func GetLogoutValues(layout int) (map[string]string, error) {
 		"${fontSize}":             fontSize,
 		"${button_radius}":        buttonRadius,
 		"${active_button_radius}": activeButtonRadius,
-		"${HOME}":                 user.GetHomeDir(),
+		"${HOME}":                 fldir.GetHomeDir(),
 	}
 
 	switch layout {
@@ -60,7 +59,7 @@ func Logout(layout int) {
 		return
 	}
 
-	home := user.GetHomeDir()
+	home := fldir.GetHomeDir()
 	layoutPath := fmt.Sprintf("%s/.config/wlogout/layout_%d", home, layout)
 	stylesPath := fmt.Sprintf("%s/.config/wlogout/style_%d.css", home, layout)
 

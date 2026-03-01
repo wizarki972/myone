@@ -10,9 +10,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/wizarki972/myone/internal/utils/cmds"
 )
 
-// PATH
+// PATHS
 
 func IsPathExist(path string) bool {
 	_, err := os.Stat(path)
@@ -49,7 +51,6 @@ func ReadFileAsStringNoError(path string) string {
 	return string(data)
 }
 
-// rename this func to WriteStringtTFile
 func WriteStringToFile(content, path string) {
 	CreateDirectory(filepath.Dir(path))
 	// 0664 - 6 (r+w), 4(r)
@@ -230,4 +231,22 @@ func DownloadURL(URL, destination string, want_progress bool) {
 	} else if _, err := io.Copy(out, resp.Body); err != nil {
 		panic(err)
 	}
+}
+
+// USER
+
+func GetXDGDir(name string) string {
+	output, err := cmds.ExecCommand("xdg-user-dir " + name)
+	if err != nil {
+		panic(err)
+	}
+	return string(output)
+}
+
+func GetHomeDir() string {
+	out, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
+	return out
 }

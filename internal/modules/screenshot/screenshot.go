@@ -2,7 +2,7 @@ package screenshot
 
 import (
 	"github.com/wizarki972/myone/internal/utils/cmds"
-	"github.com/wizarki972/myone/internal/utils/user"
+	"github.com/wizarki972/myone/internal/utils/fldir"
 )
 
 // A wrapper around flameshot to suit my needs
@@ -10,7 +10,7 @@ import (
 // also set useGrimAdapter=true in ~/.config/flameshot/flameshot.ini
 
 func OpenGUI() {
-	command := "flameshot gui --path " + user.GetXDGDir("PICTURES")
+	command := "flameshot gui --path " + fldir.GetXDGDir("PICTURES")
 	if err := cmds.ExecComamndWithError(command); err != nil {
 		panic(err)
 	}
