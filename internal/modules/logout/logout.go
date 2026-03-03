@@ -11,7 +11,7 @@ import (
 )
 
 func GetLogoutValues(layout int) (map[string]string, error) {
-	vals := display.GetScreenresolution()
+	vals := display.GetScreenResolution()
 	width := vals[0]
 	height := vals[1]
 	scale := vals[2] * 100
