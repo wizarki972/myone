@@ -12,8 +12,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/wizarki972/myone/internal/common"
 	"github.com/wizarki972/myone/internal/utils/cmds"
-	"github.com/wizarki972/myone/internal/utils/common"
 	"github.com/wizarki972/myone/internal/utils/fldir"
 )
 

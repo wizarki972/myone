@@ -9,7 +9,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/wizarki972/myone/internal/utils/common"
+	"github.com/wizarki972/myone/internal/common"
 	"github.com/wizarki972/myone/internal/utils/fldir"
 )
 

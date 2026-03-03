@@ -5,13 +5,13 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/wizarki972/myone/internal/common"
 	"github.com/wizarki972/myone/internal/modules/audio"
 	"github.com/wizarki972/myone/internal/modules/battery"
 	"github.com/wizarki972/myone/internal/modules/display"
 	"github.com/wizarki972/myone/internal/modules/logout"
 	"github.com/wizarki972/myone/internal/modules/screenshot"
 	"github.com/wizarki972/myone/internal/modules/updater"
-	"github.com/wizarki972/myone/internal/utils/common"
 )
 
 var brightness, vol_notify string

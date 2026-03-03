@@ -9,3 +9,7 @@ const CURRENT_THEME_NAME_ENTRY = ".current-theme"
 // 	"${SCREEN_WIDTH}":     strconv.Itoa(display.GetScreenresolution()[0]),
 // 	"${SCREEN_HEIGHT}":    strconv.Itoa(display.GetScreenresolution()[1]),
 // }
+
+// values needed, SCRIPTS_DIRECTORY_PATH (not needed in theme), CURRENT_WALLPAPER_PATH, ALL_WALLS_DIRECTORY_PATH (not needed in theme), ROFI_IMAGE,
+// SCREEN_WIDTH, SCREEN_HEIGHT (not needed in theme)
+// Handle GTK Theme install

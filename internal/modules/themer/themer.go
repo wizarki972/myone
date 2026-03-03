@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/wizarki972/myone/internal/common"
 	"github.com/wizarki972/myone/internal/modules/display"
 	"github.com/wizarki972/myone/internal/modules/walls"
-	"github.com/wizarki972/myone/internal/utils/common"
 	"github.com/wizarki972/myone/internal/utils/fldir"
 )
 
@@ -138,6 +138,7 @@ func (t *Themer) Install() {
 		"${SCREEN_WIDTH}":     strconv.Itoa(display.GetScreenresolution()[0]),
 		"${SCREEN_HEIGHT}":    strconv.Itoa(display.GetScreenresolution()[1]),
 	}
+
 	themepath := filepath.Join(t.themeDir, t.ThemeName)
 	if !fldir.IsPathExist(themepath) {
 		slog.Info("Theme not found, trying to update themes...")
