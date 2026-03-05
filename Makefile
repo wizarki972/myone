@@ -8,16 +8,15 @@ GO = go
 DESTDIR :=
 PREFIX := /usr/local
 
-VERSION := 0.7.7
+VERSION := 0.7.8
 BUILD := alpha
 
 FLAGS ?= -trimpath -mod=readonly -modcacherw
-LDFLAGS := -X "github.com/wizarki972/myone/internal/utils/common.VERSION=${VERSION}" -X "github.com/wizarki972/myone/internal/utils/common.BUILD=${BUILD}" -s -w
+LDFLAGS := -X "github.com/wizarki972/myone/internal/common.VERSION=${VERSION}" -X "github.com/wizarki972/myone/internal/common.BUILD=${BUILD}" -s -w
 # For PIE Security features, I don't think this is needed... is it? 
 EXTRA_FLAGS ?= -buildmode=pie
 
 BASE_DIRECTORY = ~/.local/share/myone
-SCRIPTS_DIRECTORY = $(BASE_DIRECTORY)/scripts
 
 .PHONY: all
 all: install
@@ -39,11 +38,6 @@ build:
 install: build
 	@echo "INSTALLING..."
 	sudo install -Dm755 ./build/$(BIN) $(DESTDIR)$(PREFIX)/bin/$(BIN)
-
-	@echo "PLACING FILES IN RIGHT PLACES..."
-	@-mkdir -p $(SCRIPTS_DIRECTORY)
-	@cp ./scripts/* $(SCRIPTS_DIRECTORY)
-	@chmod +x $(SCRIPTS_DIRECTORY)/*
 
 .PHONY: start
 start:
