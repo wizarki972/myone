@@ -16,7 +16,7 @@ var themesCMD = &cobra.Command{
 
 		if len(apply_theme) > 0 {
 			t = themer.NewThemer(apply_theme)
-			t.Install()
+			t.Apply_Theme()
 		} else {
 			t = themer.NewThemer("")
 		}
@@ -27,6 +27,7 @@ var themesCMD = &cobra.Command{
 
 		if force_update_themes {
 			t.Download()
+			t.Install()
 		}
 
 		return nil

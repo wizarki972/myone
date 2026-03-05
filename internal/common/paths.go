@@ -1,18 +1,22 @@
 package common
 
-const BASE_DIR = ".local/share/myone"
 const CONFIG_DIR = ".config/myone"
 const CACHE_DIR = ".cache/myone"
-const COLORS_DIR = BASE_DIR + "/colors"
-const ASSETS_DIR = BASE_DIR + "/assets"
+const BASE_DIR = ".local/share/myone"
 
-// var PseudoPaths = map[string]string{
-// 	"base":    BASE_DIR,
-// 	"config":  filepath.Join(CONFIG_DIR, "config.toml"),
-// 	"scripts": filepath.Join(BASE_DIR, "scripts"),
-// }
+const SCRIPTS_DIR = BASE_DIR + "/scripts" // do I really needs this const?! && do I need to move the scripts folder
 
-// func GetDirPathFor(value string) string {
-// 	home := fldir.GetHomeDir()
-// 	return filepath.Join(home, PseudoPaths[value])
-// }
+// WALLS
+const ALL_WALLS_DIR = BASE_DIR + "/walls"
+
+const CURRENT_WALLPAPER_ENTRY = ".current-wallpaper"
+const CURRENT_WALLPAPER_ENTRY_PATH = BASE_DIR + "/" + CURRENT_WALLPAPER_ENTRY
+
+// THEMES
+const THEMES_DIR = BASE_DIR + "/themes"
+
+const CURRENT_THEME_NAME_ENTRY = ".current-theme"
+const CURRENT_THEME_NAME_ENTRY_PATH = BASE_DIR + "/" + CURRENT_THEME_NAME_ENTRY
+
+const THEMES_STATE_DIR = ".local/state/myone"
+const COMMON_PLACED_STATE_PATH = THEMES_STATE_DIR + "/is_common_placed"

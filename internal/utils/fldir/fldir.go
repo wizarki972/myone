@@ -250,3 +250,86 @@ func GetHomeDir() string {
 	}
 	return out
 }
+
+// MOVE
+
+// Move moves a file or directory from src to dst.
+// Works across filesystems and preserves permissions.
+func Move(src, dst string) {
+	// Try fast path (rename)
+	if err := os.Rename(src, dst); err == nil {
+		return
+	}
+
+	info, err := os.Lstat(src)
+	if err != nil {
+		panic(err)
+	}
+
+	slog.Warn("Fast renaming did not work, falling back to moving file by file.")
+	if info.IsDir() {
+		if err := moveDir(src, dst); err != nil {
+			panic(err)
+		}
+	}
+
+	if err := moveFile(src, dst, info); err != nil {
+		panic(err)
+	}
+}
+
+func moveFile(src, dst string, info os.FileInfo) error {
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		return err
+	}
+
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode())
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	if _, err = io.Copy(out, in); err != nil {
+		return err
+	}
+
+	if err = out.Sync(); err != nil {
+		return err
+	}
+
+	return os.Remove(src)
+}
+
+func moveDir(src, dst string) error {
+	return filepath.WalkDir(src, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dst, rel)
+
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+
+		if d.IsDir() {
+			return os.MkdirAll(target, info.Mode())
+		}
+
+		if err := moveFile(path, target, info); err != nil {
+			return err
+		}
+		return nil
+	})
+}
