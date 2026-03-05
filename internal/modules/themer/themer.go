@@ -131,15 +131,7 @@ func (t *Themer) Download() {
 }
 
 func (t *Themer) Install() {
-	t.themePlaceholderValues = map[string]string{
-		"${SCRIPTS_DIRECTORY_PATH}":   filepath.Join(t.homeDir, common.SCRIPTS_DIR),
-		"${CURRENT_WALLPAPER_PATH}":   filepath.Join(t.homeDir, common.CURRENT_WALLPAPER_ENTRY_PATH),
-		"${ALL_WALLS_DIRECTORY_PATH}": filepath.Join(t.homeDir, common.ALL_WALLS_DIR),
-		"${ROFI_IMAGE}":               t.get_rofi_image(),
-		"${SCREEN_WIDTH}":             strconv.Itoa(display.GetScreenResolution()[0]),
-		"${SCREEN_HEIGHT}":            strconv.Itoa(display.GetScreenResolution()[1]),
-	}
-
+	t.generate_placeholder_values()
 	// Dir checks
 	if !fldir.IsPathExist(t.themesDir) {
 		slog.Info("Theme not found, trying to update themes...")
@@ -203,12 +195,24 @@ func (t *Themer) Dependency_check() {
 }
 
 func (t *Themer) Apply_Theme() {
+	t.generate_placeholder_values()
 	if !t.common_state() {
 		t.place_common_files()
 	}
 	t.place_theme_dependent_files()
 	t.apply_colors()
 	fldir.WriteStringToFile(t.ThemeName, t.currentThemeNamePath)
+}
+
+func (t *Themer) generate_placeholder_values() {
+	t.themePlaceholderValues = map[string]string{
+		"${SCRIPTS_DIRECTORY_PATH}":   filepath.Join(t.homeDir, common.SCRIPTS_DIR),
+		"${CURRENT_WALLPAPER_PATH}":   filepath.Join(t.homeDir, common.CURRENT_WALLPAPER_ENTRY_PATH),
+		"${ALL_WALLS_DIRECTORY_PATH}": filepath.Join(t.homeDir, common.ALL_WALLS_DIR),
+		"${ROFI_IMAGE}":               t.get_rofi_image(),
+		"${SCREEN_WIDTH}":             strconv.Itoa(display.GetScreenResolution()[0]),
+		"${SCREEN_HEIGHT}":            strconv.Itoa(display.GetScreenResolution()[1]),
+	}
 }
 
 func (t *Themer) apply_colors() {
