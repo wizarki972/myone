@@ -8,10 +8,10 @@ import (
 	"github.com/wizarki972/myone/internal/common"
 	"github.com/wizarki972/myone/internal/modules/audio"
 	"github.com/wizarki972/myone/internal/modules/battery"
+	"github.com/wizarki972/myone/internal/modules/bootstrap"
 	"github.com/wizarki972/myone/internal/modules/display"
 	"github.com/wizarki972/myone/internal/modules/logout"
 	"github.com/wizarki972/myone/internal/modules/screenshot"
-	"github.com/wizarki972/myone/internal/modules/updater"
 )
 
 var brightness, vol_notify string
@@ -52,9 +52,9 @@ var rootCMD = &cobra.Command{
 
 		if update {
 			if os.Getenv("MYONE_INTERNAL") == "1" {
-				updater.Update(true)
+				bootstrap.Self_update(true)
 			} else {
-				updater.Update(false)
+				bootstrap.Self_update(false)
 			}
 
 		}

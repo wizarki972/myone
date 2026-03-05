@@ -1,4 +1,4 @@
-package updater
+package bootstrap
 
 import (
 	"fmt"
@@ -19,7 +19,7 @@ const DOWNLOAD_URL = "https://github.com/wizarki972/myone/archive/refs/heads/mai
 // NOTE
 // MYONE_INTERNAL environment variable is used to separate a background update check from a command executed by the user
 
-func isLatest() (bool, string) {
+func is_latest() (bool, string) {
 	// Getting latest version from repo
 	ver_str := fldir.ReadTextFileFromURL(VERSION_URL, false, "")
 	out, err := strconv.ParseFloat(strings.SplitN(ver_str, ".", 2)[1], 64)
@@ -29,8 +29,8 @@ func isLatest() (bool, string) {
 	return out == common.GetVersionFloat(), ver_str
 }
 
-func Update(gui bool) {
-	ok, latest := isLatest()
+func Self_update(gui bool) {
+	ok, latest := is_latest()
 
 	// If the version in repo is not the one installed then it will perform update/downgrade
 	// This allows downgrading to last stable in case of bugs by rolling back to older releases in repo.
