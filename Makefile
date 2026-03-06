@@ -3,8 +3,8 @@ export GO111MODULE=on
 GOPROXY ?= https://proxy.golang.org,direct
 export GOPROXY
 
-BIN = myone
-GO = go
+BIN := myone
+GO := go
 DESTDIR :=
 PREFIX := /usr/local
 
@@ -28,14 +28,14 @@ dep:
 	@yay -S --needed vicinae-bin > /dev/null 2>&1
 
 .PHONY: build
-build:
+build-bin:
 	@echo "BUILDING BINARY..."
 	@mkdir -p ./build
 	$(GO) build $(FLAGS) -ldflags '$(LDFLAGS)' -o ./build/$(BIN)
 	chmod +x ./build/$(BIN)
 
 .PHONY: install
-install: build
+install: build-bin
 	@echo "INSTALLING..."
 	sudo install -Dm755 ./build/$(BIN) $(DESTDIR)$(PREFIX)/bin/$(BIN)
 

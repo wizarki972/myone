@@ -51,7 +51,7 @@ func Self_update(gui bool) {
 			fmt.Print(common.MYONE_ASCII)
 
 			// getting user consent
-			fmt.Printf("Update available %s ==> 0.%s\n", common.VERSION, latest)
+			fmt.Printf("Update available %s ==> %s\n", common.VERSION, latest)
 			fmt.Print("Do you wish to update? [Y/n]: ")
 
 			var response string
