@@ -24,8 +24,8 @@ all: install
 .PHONY: dep
 dep:
 	@echo "CHECKING FOR DEPENDENCIES..."
-	@sudo pacman -S --needed go hyprland wireplumber blueman waybar rofi brightnessctl wiremix nwg-displays nwg-look nautilus wl-clipboard kitty swaync swayosd flameshot wlogout zsh > /dev/null 2>&1
-	@yay -S --needed vicinae-bin > /dev/null 2>&1
+	@sudo pacman -S --needed starship go hyprland wireplumber blueman waybar rofi brightnessctl wiremix nwg-displays nwg-look nautilus wl-clipboard kitty swaync swayosd flameshot wlogout zsh > /dev/null 2>&1
+# 	@yay -S --needed vicinae-bin > /dev/null 2>&1
 
 .PHONY: build
 build-bin:

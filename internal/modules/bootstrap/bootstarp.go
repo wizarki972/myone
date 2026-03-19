@@ -54,7 +54,8 @@ func Is_dependency_installed(pkg_name string) bool {
 	command := fmt.Sprintf("pacman -Q %s", pkg_name)
 	out, err := cmds.ExecCommand(command)
 	if err != nil {
-		panic(err)
+		// handle the errors later
+		return false
 	}
 
 	return strings.HasPrefix(string(out), pkg_name)
