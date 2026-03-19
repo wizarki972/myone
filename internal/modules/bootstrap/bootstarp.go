@@ -17,15 +17,15 @@ func Dependency_install(pkg_name string) error {
 
 	// command
 	command := fmt.Sprintf("sudo pacman -Sy --needed %s", pkg_name)
-	if cmds.Has_sudo() || cmds.Is_root() {
-		if !cmds.Is_interactive_shell() {
-			cmds.ExecForSudo(command)
-		} else {
-			cmds.ExecCommandInInteractiveShell("", "MyOne-Dependency-Install", command, false)
-		}
+	// if cmds.Has_sudo() || cmds.Is_root() {
+	if !cmds.Is_interactive_shell() {
+		cmds.ExecForSudo(command)
 	} else {
-		return errors.New("run the command as sudo to install dependencies")
+		cmds.ExecCommandInInteractiveShell("", "MyOne-Dependency-Install", command, false)
 	}
+	// } else {
+	// 	return errors.New("run the command as sudo to install dependencies")
+	// }
 
 	return nil
 }
