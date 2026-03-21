@@ -8,7 +8,7 @@ GO := go
 DESTDIR :=
 PREFIX := /usr/local
 
-VERSION := 0.8.3
+VERSION := 0.8.31
 BUILD := beta
 
 FLAGS ?= -trimpath -mod=readonly -modcacherw
@@ -24,7 +24,7 @@ all: install
 .PHONY: dep
 dep:
 	@echo "CHECKING FOR DEPENDENCIES..."
-	-@sudo pacman -S --needed starship go hyprland wireplumber blueman waybar rofi brightnessctl wiremix nwg-displays nwg-look nautilus wl-clipboard kitty swaync swayosd flameshot wlogout zsh > /dev/null 2>&1
+	-@sudo pacman -S --needed --noconfirm starship go hyprland wireplumber blueman waybar rofi brightnessctl wiremix nwg-displays nwg-look nautilus wl-clipboard kitty swaync swayosd flameshot wlogout zsh > /dev/null 2>&1
 
 .PHONY: build
 build-bin:

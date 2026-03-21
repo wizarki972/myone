@@ -16,7 +16,7 @@ func Dependency_install(pkg_name string) error {
 	}
 
 	// command
-	command := fmt.Sprintf("sudo pacman -Sy --needed %s", pkg_name)
+	command := fmt.Sprintf("sudo pacman -Sy --needed --noconfirm %s", pkg_name)
 	// if cmds.Has_sudo() || cmds.Is_root() {
 	if !cmds.Is_interactive_shell() {
 		cmds.ExecForSudo(command)
