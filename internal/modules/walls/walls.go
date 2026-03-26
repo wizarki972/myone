@@ -224,7 +224,7 @@ func (w *Wall) ShowWallpaperChangeMenu() {
 	// SETTING WALL
 	current_wall_path := filepath.Join(home, common.CURRENT_WALLPAPER_ENTRY_PATH)
 	fldir.CopyFile(filepath.Join(pack_dir, strings.TrimSpace(string(selection))), current_wall_path)
-	command = fmt.Sprintf("swww img %s --transition-type fade --transition-duration 0.5", current_wall_path)
+	command = fmt.Sprintf("awww img %s --transition-type fade --transition-duration 0.5", current_wall_path)
 	if err = cmds.ExecComamndWithError(command); err != nil {
 		panic(err)
 	}
