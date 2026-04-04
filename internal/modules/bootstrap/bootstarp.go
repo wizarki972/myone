@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/wizarki972/myone/internal/common"
 	"github.com/wizarki972/myone/internal/utils/cmds"
 )
 
@@ -17,15 +18,11 @@ func Dependency_install(pkg_name string) error {
 
 	// command
 	command := fmt.Sprintf("sudo pacman -Sy --needed --noconfirm %s", pkg_name)
-	// if cmds.Has_sudo() || cmds.Is_root() {
 	if !cmds.Is_interactive_shell() {
 		cmds.ExecForSudo(command)
 	} else {
-		cmds.ExecCommandInInteractiveShell("", "MyOne-Dependency-Install", command, false)
+		cmds.ExecCommandInInteractiveShell("", "MyOne-Dependency-Install", fmt.Sprintf("echo '%s\n' && echo 'Installing required dependencies\n%s\n' && %s", common.MYONE_ASCII, pkg_name, command), false)
 	}
-	// } else {
-	// 	return errors.New("run the command as sudo to install dependencies")
-	// }
 
 	return nil
 }

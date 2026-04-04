@@ -27,14 +27,14 @@ dep:
 	-@sudo pacman -S --needed --noconfirm starship go hyprland wireplumber blueman waybar rofi brightnessctl wiremix nwg-displays nwg-look nautilus wl-clipboard kitty swaync swayosd flameshot awww wlogout zsh > /dev/null 2>&1
 
 .PHONY: build
-build-bin:
+build:
 	@echo "BUILDING BINARY..."
 	@mkdir -p ./build
 	$(GO) build $(FLAGS) -ldflags '$(LDFLAGS)' -o ./build/$(BIN)
 	chmod +x ./build/$(BIN)
 
 .PHONY: install
-install: build-bin
+install: build
 	@echo "INSTALLING..."
 	sudo install -Dm755 ./build/$(BIN) $(DESTDIR)$(PREFIX)/bin/$(BIN)
 
