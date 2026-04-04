@@ -21,7 +21,7 @@ func Dependency_install(pkg_name string) error {
 	if !cmds.Is_interactive_shell() {
 		cmds.ExecForSudo(command)
 	} else {
-		cmds.ExecCommandInInteractiveShell("", "MyOne-Dependency-Install", fmt.Sprintf("echo '%s\n' && echo 'Installing required dependencies\n%s\n' && %s", common.MYONE_ASCII, pkg_name, command), false)
+		cmds.ExecCommandInInteractiveShell(fmt.Sprintf("%s\nFollowing dependencies are needed, \n%s\nDo you want to install it?", common.MYONE_ASCII, pkg_name), "", "MyOne-Dependency-Install", command, true, false)
 	}
 
 	return nil
