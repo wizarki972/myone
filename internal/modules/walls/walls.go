@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/wizarki972/myone/internal/common"
 	"github.com/wizarki972/myone/internal/utils/cmds"
@@ -82,7 +81,7 @@ func (w *Wall) RefreshLocalIndices() {
 		if err != nil {
 			panic(err)
 		}
-		w.local_indices[strings.TrimSpace(parts[1])] = &index{
+		w.local_indices[strings.ToLower(strings.TrimSpace(parts[1]))] = &index{
 			Version: version,
 			Name:    strings.TrimSpace(parts[1]),
 			ZipName: strings.TrimSpace(parts[2]),
@@ -110,7 +109,7 @@ func (w *Wall) RefreshRepoIndices() {
 		if err != nil {
 			panic(err)
 		}
-		w.repo_indices[strings.TrimSpace(parts[1])] = &index{
+		w.repo_indices[strings.ToLower(strings.TrimSpace(parts[1]))] = &index{
 			Version: version,
 			Name:    strings.TrimSpace(parts[1]),
 			ZipName: strings.TrimSpace(parts[2]),
@@ -129,11 +128,11 @@ func (w *Wall) List() {
 
 		switch {
 		case ok && w.local_indices[key].Version < value.Version:
-			fmt.Printf("* %s - %.2f [UPDATE AVAILABLE current version %.2f]\n", key, value.Version, w.local_indices[key].Version)
+			fmt.Printf("* %s - %.2f [UPDATE AVAILABLE current version %.2f]\n", value.Name, value.Version, w.local_indices[key].Version)
 		case ok:
-			fmt.Printf("* %s - %.2f [INSTALLED]\n", key, value.Version)
+			fmt.Printf("* %s - %.2f [INSTALLED]\n", value.Name, value.Version)
 		default:
-			fmt.Printf("* %s - %.2f\n", key, value.Version)
+			fmt.Printf("* %s - %.2f\n", value.Name, value.Version)
 		}
 	}
 }
@@ -142,10 +141,16 @@ func (w *Wall) Remove(pack_name string) {
 	w.RefreshLocalIndices()
 	w.RefreshRepoIndices()
 
-	if err := os.RemoveAll(filepath.Join(w.wallDir, pack_name)); err != nil {
+	pack_name_lc := strings.ToLower(pack_name)
+	pack, ok := w.local_indices[pack_name_lc]
+	if !ok {
+		panic(errors.New("pack not found"))
+	}
+
+	if err := os.RemoveAll(filepath.Join(w.wallDir, pack.Name)); err != nil {
 		panic(err)
 	}
-	delete(w.local_indices, pack_name)
+	delete(w.local_indices, pack_name_lc)
 	w.WriteIndex()
 }
 
@@ -153,8 +158,9 @@ func (w *Wall) Install(pack_name string) {
 	w.RefreshRepoIndices()
 	w.RefreshLocalIndices()
 
+	pack_name_lc := strings.ToLower(pack_name)
 	// Pack's existence
-	pack, ok := w.repo_indices[capitalizeFirst(pack_name)]
+	pack, ok := w.repo_indices[pack_name_lc]
 	if !ok {
 		slog.Error(fmt.Sprintf("%s pack not available", pack_name))
 		os.Exit(1)
@@ -162,16 +168,19 @@ func (w *Wall) Install(pack_name string) {
 
 	// DOWNLOADING WALL PACK
 	cache_path := filepath.Join(fldir.GetHomeDir(), common.CACHE_DIR, "walls", pack.ZipName)
-	fldir.DownloadURL(ZIPS_DIR_URL+w.repo_indices[pack_name].ZipName, cache_path, true)
+	fldir.DownloadURL(ZIPS_DIR_URL+w.repo_indices[pack_name_lc].ZipName, cache_path, true)
 
 	// UNZIPPING PACK
 	fmt.Println("EXTRACTING WALLPAPERS...")
-	destination := filepath.Join(w.wallDir, pack_name)
+	destination := filepath.Join(w.wallDir, pack.Name)
+	if err := os.RemoveAll(destination); err != nil {
+		panic(err)
+	}
 	fldir.CreateDirectory(destination)
 	fldir.Unzip(cache_path, destination)
 
 	// ADDING INDEX
-	w.local_indices[pack_name] = w.repo_indices[pack_name]
+	w.local_indices[pack_name_lc] = w.repo_indices[pack_name_lc]
 	w.WriteIndex()
 
 	// CLEANING UP
@@ -179,7 +188,7 @@ func (w *Wall) Install(pack_name string) {
 		fmt.Println("ERROR: Failed to clean up cache")
 	}
 
-	fmt.Printf("INSTALLED %s Wallpaper pack", pack_name)
+	fmt.Printf("INSTALLED %s Wallpaper pack", pack.Name)
 }
 
 func (w *Wall) WriteIndex() {
@@ -261,12 +270,4 @@ func rofiWallMenuBuilder(dir_path, mode string) string {
 		panic(errors.New("no wallpapers found, install a wallpack"))
 	}
 	return rofi_input.String()
-}
-
-func capitalizeFirst(s string) string {
-	if s == "" {
-		return s
-	}
-	r, size := utf8.DecodeRuneInString(s)
-	return strings.ToUpper(string(r)) + s[size:]
 }

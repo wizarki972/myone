@@ -8,7 +8,7 @@ GO := go
 DESTDIR :=
 PREFIX := /usr/local
 
-VERSION := 0.8.34
+VERSION := 0.8.35
 BUILD := beta
 
 FLAGS ?= -trimpath -mod=readonly -modcacherw
