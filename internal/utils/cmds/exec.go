@@ -38,9 +38,9 @@ func ExecCommand(command string) ([]byte, error) {
 func ExecCommandInInteractiveShell(msg, envs, title, command string, ask_permission, separate bool) {
 	var cmd *exec.Cmd
 	if ask_permission {
-		cmd = exec.Command("bash", "-c", fmt.Sprintf("printf '%s [y/N]: ' && read ans && [[ '$ans' =~ ^[Yy]$ ]] && %s kitty --hold --title %s -e %s", msg, envs, title, command))
+		cmd = exec.Command("bash", "-c", fmt.Sprintf("printf '%s [y/N]: ' && read ans && [[ '$ans' =~ ^[Yy]$ ]] && %s kitty --title %s -e sh -c \"%s && printf 'Press any key to exit...' && read\"", msg, envs, title, command))
 	} else {
-		cmd = exec.Command("bash", "-c", fmt.Sprintf("%s kitty --hold --title %s -e %s", envs, title, command))
+		cmd = exec.Command("bash", "-c", fmt.Sprintf("%s kitty --title %s -e sh -c \"%s && printf 'Press any key to exit...' && read\"", envs, title, command))
 	}
 
 	if separate {
