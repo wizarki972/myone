@@ -45,12 +45,12 @@ func NewThemer(theme_name string) *Themer {
 	// current theme
 	if fldir.IsPathExist(t.currentThemeNamePath) {
 
-		current, err := fldir.ReadFileAsString(t.currentThemeNamePath)
+		var err error
+		t.ThemeName, err = fldir.ReadFileAsString(t.currentThemeNamePath)
 		if err != nil {
 			// Change the error to something like `cannot get current theme`
 			panic(err)
 		}
-		t.ThemeName = strings.TrimSpace(current)
 
 		// second check for errors
 		if len(t.ThemeName) == 0 {
@@ -98,6 +98,7 @@ func (t *Themer) Update() {
 	verStr = fldir.ReadTextFileFromURL(VERSION_URL, false, "")
 	repo_v, repo_sv = version_parser(verStr)
 
+	// update starts
 	if (local_v < repo_v) || (local_v == repo_v && local_sv < repo_sv) {
 		t.Download()
 		t.Install()
@@ -157,9 +158,10 @@ func (t *Themer) Install() {
 	t.apply_colors()
 
 	// dependency check
+	fmt.Println("Dependency check...")
 	t.Dependency_check()
 
-	// t.copy_files(themepath, "")
+	// writing current theme
 	fldir.WriteStringToFile(t.ThemeName, t.currentThemeNamePath)
 }
 
@@ -234,9 +236,9 @@ func (t *Themer) apply_colors() {
 		panic(err)
 	}
 	var schema map[string]string = make(map[string]string)
-	for _, line := range strings.Split(content, "\n") {
+	for line := range strings.SplitSeq(content, "\n") {
 		parts := strings.Split(line, "=")
-		schema[strings.TrimSpace(parts[0])] = filepath.Join(t.homeDir, strings.TrimSpace(parts[1]))
+		schema[parts[0]] = filepath.Join(t.homeDir, parts[1])
 	}
 
 	// logic
@@ -246,6 +248,10 @@ func (t *Themer) apply_colors() {
 	}
 	for _, entry := range entries {
 		// entry check
+		if entry.IsDir() {
+			slog.Warn(fmt.Sprintf("Folder %s is skipped", filepath.Join(t.themesDir, entry.Name())))
+		}
+
 		target_path, ok := schema[entry.Name()]
 		if !ok {
 			slog.Warn("unknown colors file found. Skipping")
@@ -257,91 +263,13 @@ func (t *Themer) apply_colors() {
 	}
 }
 
-func (t *Themer) place_theme_dependent_files() {
-	td_path := filepath.Join(t.themesDir, "theme_deps")
-
-	// checks
-	info, err := os.Stat(td_path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			slog.Info("No theme dependent configs are found.")
-			return
-		}
-		panic(err)
-	}
-	if !info.IsDir() {
-		slog.Info("Instead of theme dependent config files directory, found a file. So Skipping...")
-		return
-	}
-
-	// place files logic
-	if err := t.place_files_logic(td_path, "", true); err != nil {
-		slog.Warn(err.Error())
-	}
-
-}
-
-func (t *Themer) place_common_files() {
-	common_dir := filepath.Join(t.themesDir, "common")
-	if !fldir.IsPathExist(common_dir) {
-		slog.Info("Theme not found, trying to update themes...")
-		t.Download()
-	}
-
-	if err := t.place_files_logic(common_dir, "", false); err != nil {
-		panic(err)
-	}
-
-	t.set_common_state(true)
-}
-
-func (t *Themer) place_files_logic(path, suffix string, force_fill bool) error {
-	entries, err := os.ReadDir(path)
-	if err != nil {
-		panic(err)
-	}
-
-	if len(entries) == 0 {
-		return fmt.Errorf("no files found in this directory (%s)", path)
-	}
-
-	for _, entry := range entries {
-		entry_path := filepath.Join(path, entry.Name())
-
-		if entry.IsDir() {
-			t.place_files_logic(entry_path, filepath.Join(suffix, entry.Name()), force_fill)
-		} else {
-			fldir.CreateDirectory(filepath.Join(t.homeDir, suffix))
-			if force_fill || strings.HasPrefix(entry.Name(), "$") {
-				t.fill(entry_path, filepath.Join(t.homeDir, suffix, strings.TrimPrefix(entry.Name(), "$")))
-			} else {
-				fldir.CopyFile(entry_path, filepath.Join(t.homeDir, suffix, entry.Name()))
-			}
-		}
-	}
-
-	return nil
-}
-
-func (t *Themer) fill(current_path, save_path string) {
-	file, err := fldir.ReadFileAsString(current_path)
-	if err != nil {
-		panic(err)
-	}
-
-	for old, new := range t.themePlaceholderValues {
-		file = strings.ReplaceAll(file, old, new)
-	}
-	fldir.WriteStringToFile(file, save_path)
-}
-
 func (t *Themer) common_state() bool {
 	if fldir.IsPathExist(t.commonStatePath) {
 		data, err := fldir.ReadFileAsString(t.commonStatePath)
 		if err != nil {
 			panic(err)
 		}
-		if strings.TrimSpace(data) == "1" {
+		if data == "1" {
 			return true
 		}
 	}
@@ -379,7 +307,7 @@ func version_parser(version string) (float64, int) {
 	if err != nil {
 		panic(err)
 	}
-	sub_version, err := strconv.Atoi(strings.TrimSpace(version_parts[1]))
+	sub_version, err := strconv.Atoi(version_parts[1])
 	if err != nil {
 		panic(err)
 	}

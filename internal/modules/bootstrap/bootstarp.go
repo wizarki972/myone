@@ -12,16 +12,16 @@ import (
 
 func Dependency_install(pkg_name string) error {
 	// check
-	if len(pkg_name) == 0 {
+	if len(strings.TrimSpace(pkg_name)) == 0 {
 		return errors.New("enter the package name to install")
 	}
 
 	// command
 	command := fmt.Sprintf("sudo pacman -Sy --needed --noconfirm %s", pkg_name)
 	if !cmds.Is_interactive_shell() {
-		cmds.ExecForSudo(command)
-	} else {
 		cmds.ExecCommandInInteractiveShell(fmt.Sprintf("%s\nFollowing dependencies are needed, \n%s\nDo you want to install it?", common.MYONE_ASCII, pkg_name), "", "MyOne-Dependency-Install", command, true, false)
+	} else {
+		cmds.ExecCommandNoFeedback(command)
 	}
 
 	return nil

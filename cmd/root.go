@@ -51,11 +51,12 @@ var rootCMD = &cobra.Command{
 		}
 
 		if update {
-			if os.Getenv("MYONE_INTERNAL") == "1" {
-				bootstrap.Self_update(true)
-			} else {
-				bootstrap.Self_update(false)
-			}
+			bootstrap.Self_update()
+			// if os.Getenv("MYONE_INTERNAL") == "1" {
+			// 	bootstrap.Self_update(true)
+			// } else {
+			// 	bootstrap.Self_update(false)
+			// }
 
 		}
 

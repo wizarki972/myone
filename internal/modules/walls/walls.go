@@ -194,7 +194,7 @@ func (w *Wall) Install(pack_name string) {
 func (w *Wall) WriteIndex() {
 	var b strings.Builder
 	for _, v := range w.local_indices {
-		fmt.Fprintf(&b, "%.2f = %s = %s\n", v.Version, v.Name, v.ZipName)
+		fmt.Fprintf(&b, "%.2f=%s=%s\n", v.Version, v.Name, v.ZipName)
 	}
 
 	fldir.WriteStringToFile(b.String(), w.indexPath)

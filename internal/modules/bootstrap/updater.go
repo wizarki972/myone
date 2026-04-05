@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"github.com/wizarki972/myone/internal/common"
+	"github.com/wizarki972/myone/internal/utils/cmds"
 	"github.com/wizarki972/myone/internal/utils/fldir"
 )
 
@@ -29,24 +29,14 @@ func is_latest() (bool, string) {
 	return out == common.GetVersionFloat(), ver_str
 }
 
-func Self_update(gui bool) {
+func Self_update() {
 	ok, latest := is_latest()
 
 	// If the version in repo is not the one installed then it will perform update/downgrade
 	// This allows downgrading to last stable in case of bugs by rolling back to older releases in repo.
 	if !ok {
-		if gui {
-			cmd := exec.Command("sh", "-c", "MYONE_INTERNAL=0 kitty --title MyOne-Update -e myone --update")
-			cmd.SysProcAttr = &syscall.SysProcAttr{
-				Setsid: true,
-			}
-			cmd.Stderr = nil
-			cmd.Stdout = nil
-			cmd.Stdin = nil
-
-			if err := cmd.Run(); err != nil {
-				panic(err)
-			}
+		if !cmds.Is_interactive_shell() {
+			cmds.ExecCommandInInteractiveShell("", "", "MyOne-Update", "myone --update", false, true)
 		} else {
 			fmt.Print(common.MYONE_ASCII)
 
@@ -80,7 +70,22 @@ func Self_update(gui bool) {
 
 				// cleaning up cache
 				os.RemoveAll(cache_dir)
+
 			}
+			// if gui {
+			// 	cmd := exec.Command("sh", "-c", "MYONE_INTERNAL=0 kitty --title MyOne-Update -e myone --update")
+			// 	cmd.SysProcAttr = &syscall.SysProcAttr{
+			// 		Setsid: true,
+			// 	}
+			// 	cmd.Stderr = nil
+			// 	cmd.Stdout = nil
+			// 	cmd.Stdin = nil
+
+			// 	if err := cmd.Run(); err != nil {
+			// 		panic(err)
+			// 	}
+			// } else {
+			// 	}
 		}
 	} else {
 		fmt.Println("Already on the latest build.")

@@ -40,7 +40,7 @@ func ReadFileAsString(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(data), nil
+	return strings.TrimSpace(string(data)), nil
 }
 
 func ReadFileAsStringNoError(path string) string {
@@ -48,7 +48,7 @@ func ReadFileAsStringNoError(path string) string {
 	if err != nil {
 		return ""
 	}
-	return string(data)
+	return strings.TrimSpace(string(data))
 }
 
 func WriteStringToFile(content, path string) {
@@ -187,7 +187,7 @@ func ReadTextFileFromURL(URL string, save bool, save_path string) string {
 		panic(err)
 	}
 
-	return string(data)
+	return strings.TrimSpace(string(data))
 }
 
 type progress_writter struct {
