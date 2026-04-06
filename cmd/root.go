@@ -52,12 +52,6 @@ var rootCMD = &cobra.Command{
 
 		if update {
 			bootstrap.Self_update()
-			// if os.Getenv("MYONE_INTERNAL") == "1" {
-			// 	bootstrap.Self_update(true)
-			// } else {
-			// 	bootstrap.Self_update(false)
-			// }
-
 		}
 
 		return nil

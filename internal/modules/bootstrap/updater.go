@@ -72,20 +72,6 @@ func Self_update() {
 				os.RemoveAll(cache_dir)
 
 			}
-			// if gui {
-			// 	cmd := exec.Command("sh", "-c", "MYONE_INTERNAL=0 kitty --title MyOne-Update -e myone --update")
-			// 	cmd.SysProcAttr = &syscall.SysProcAttr{
-			// 		Setsid: true,
-			// 	}
-			// 	cmd.Stderr = nil
-			// 	cmd.Stdout = nil
-			// 	cmd.Stdin = nil
-
-			// 	if err := cmd.Run(); err != nil {
-			// 		panic(err)
-			// 	}
-			// } else {
-			// 	}
 		}
 	} else {
 		fmt.Println("Already on the latest build.")
