@@ -16,7 +16,7 @@ import (
 
 var brightness, vol_notify string
 var log_out int
-var screen_shot, monitor_daemon, batt_mon, version, update bool
+var screen_shot, monitor_daemon, batt_mon, version, update, dep_check bool
 
 var rootCMD = &cobra.Command{
 	Use:   "myone",
@@ -54,6 +54,10 @@ var rootCMD = &cobra.Command{
 			bootstrap.Self_update()
 		}
 
+		if dep_check {
+			bootstrap.Dependency_check()
+		}
+
 		return nil
 	},
 }
@@ -74,6 +78,8 @@ func initializeFlags() {
 	rootCMD.Flags().BoolVarP(&version, "version", "v", false, "prints the package version.")
 
 	rootCMD.Flags().BoolVarP(&update, "update", "u", false, "for updating the package.")
+
+	rootCMD.Flags().BoolVar(&dep_check, "dependency-check", false, "checks whether all dependencies are installed.")
 
 	initializeThemesFlags()
 	initializeWallsFlags()

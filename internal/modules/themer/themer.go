@@ -20,6 +20,7 @@ const DEFAULT_THEME = "tokyonight"
 const THEMES_ZIP_URL = "https://raw.githubusercontent.com/wizarki972/mythemes/main/zips/themes.zip"
 const VERSION_URL = "https://raw.githubusercontent.com/wizarki972/mythemes/main/VERSION"
 
+// Themer struct generator
 func NewThemer(theme_name string) *Themer {
 	home := fldir.GetHomeDir()
 
@@ -78,6 +79,7 @@ type Themer struct {
 	themePlaceholderValues map[string]string
 }
 
+// Updates the config/theme files if a new version is available
 func (t *Themer) Update() {
 	var local_v, repo_v float64
 	var local_sv, repo_sv int
@@ -108,6 +110,7 @@ func (t *Themer) Update() {
 	}
 }
 
+// Downloads the files from the repo
 func (t *Themer) Download() {
 	// CACHE PATH CHECK
 	cache_path := filepath.Join(t.cacheDir, "themes.zip")
@@ -131,6 +134,7 @@ func (t *Themer) Download() {
 	}
 }
 
+// Installs the downloaded config/theme files
 func (t *Themer) Install() {
 	t.generate_placeholder_values()
 	// Dir checks
@@ -158,44 +162,17 @@ func (t *Themer) Install() {
 	t.apply_colors()
 
 	// dependency check
-	fmt.Println("Dependency check...")
-	t.Dependency_check()
+	dep_lst_path := filepath.Join(t.themesDir, "deps.lst")
+	if fldir.IsPathExist(dep_lst_path) {
+		fmt.Println("Dependency check...")
+		bootstrap.Install_pkgs_from_file(dep_lst_path)
+	}
 
 	// writing current theme
 	fldir.WriteStringToFile(t.ThemeName, t.currentThemeNamePath)
 }
 
-func (t *Themer) Dependency_check() {
-	path := filepath.Join(t.themesDir, "deps.lst")
-	if !fldir.IsPathExist(path) {
-		return
-	}
-
-	content, err := fldir.ReadFileAsString(path)
-	if err != nil {
-		panic(err)
-	}
-
-	var packages strings.Builder
-	for line := range strings.SplitSeq(content, "\n") {
-		pkg := strings.TrimSpace(line)
-		if !bootstrap.Is_dependency_installed(pkg) {
-			packages.WriteString(pkg)
-			packages.WriteString(" ")
-		}
-	}
-
-	// check
-	if packages.Len() == 0 {
-		slog.Info("SKIPPING DEPENDENCY CHECK :: All dependencies are already installed")
-		return
-	}
-
-	if err := bootstrap.Dependency_install(packages.String()); err != nil {
-		slog.Error(err.Error())
-	}
-}
-
+// applies themes
 func (t *Themer) Apply_Theme() {
 	t.generate_placeholder_values()
 	if !t.common_state() {
@@ -206,6 +183,7 @@ func (t *Themer) Apply_Theme() {
 	fldir.WriteStringToFile(t.ThemeName, t.currentThemeNamePath)
 }
 
+// generates dynamic/placeholder values for dynamic config files
 func (t *Themer) generate_placeholder_values() {
 	t.themePlaceholderValues = map[string]string{
 		"${SCRIPTS_DIRECTORY_PATH}":   filepath.Join(t.homeDir, common.SCRIPTS_DIR),
@@ -217,6 +195,7 @@ func (t *Themer) generate_placeholder_values() {
 	}
 }
 
+// changes colors files based on the theme
 func (t *Themer) apply_colors() {
 	colors_dir := filepath.Join(t.themesDir, "colors", t.ThemeName)
 
@@ -263,6 +242,7 @@ func (t *Themer) apply_colors() {
 	}
 }
 
+// stores whether config files are installed or not
 func (t *Themer) common_state() bool {
 	if fldir.IsPathExist(t.commonStatePath) {
 		data, err := fldir.ReadFileAsString(t.commonStatePath)
@@ -286,6 +266,7 @@ func (t *Themer) set_common_state(state bool) {
 	fldir.WriteStringToFile(content, t.commonStatePath)
 }
 
+// getting rofi launcher image path based on the theme
 func (t *Themer) get_rofi_image() string {
 	rofi_img_dir := filepath.Join(t.themesDir, "assets", "images", "rofi")
 	entries, err := os.ReadDir(rofi_img_dir)
@@ -301,6 +282,7 @@ func (t *Themer) get_rofi_image() string {
 	panic(errors.New("rofi theme image pair not found"))
 }
 
+// version string parser
 func version_parser(version string) (float64, int) {
 	version_parts := strings.Split(version, "-")
 	version_fl, err := strconv.ParseFloat(strings.SplitN(version_parts[0], ".", 2)[1], 64)
