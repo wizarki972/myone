@@ -24,7 +24,7 @@ all: install
 .PHONY: dep
 dep:
 	@echo "CHECKING FOR DEPENDENCIES..."
-	-@sudo pacman -S --needed --noconfirm starship go hyprland wireplumber blueman waybar rofi brightnessctl wiremix nwg-displays nwg-look nautilus wl-clipboard kitty swaync swayosd flameshot awww wlogout zsh > /dev/null 2>&1
+	-@myone --dependency-check
 
 .PHONY: build
 build:
@@ -54,4 +54,4 @@ clean:
 	-rm -rf ./build
 
 .PHONY: full_install
-full_install: dep install start clean
+full_install: install dep start clean
