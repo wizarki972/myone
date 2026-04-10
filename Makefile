@@ -18,27 +18,27 @@ EXTRA_FLAGS ?= -buildmode=pie
 
 BASE_DIRECTORY = ~/.local/share/myone
 
-.PHONY: all
+PHONY := all
 all: install
 
-.PHONY: dep
+PHONY += dep
 dep:
 	@echo "CHECKING FOR DEPENDENCIES..."
 	-@myone --dependency-check
 
-.PHONY: build
+PHONY += build
 build:
 	@echo "BUILDING BINARY..."
 	@mkdir -p ./build
 	$(GO) build $(FLAGS) -ldflags '$(LDFLAGS)' -o ./build/$(BIN)
 	chmod +x ./build/$(BIN)
 
-.PHONY: install
+PHONY += install
 install: build
 	@echo "INSTALLING..."
 	sudo install -Dm755 ./build/$(BIN) $(DESTDIR)$(PREFIX)/bin/$(BIN)
 
-.PHONY: start
+PHONY += start
 start:
 	@echo "KILLING OLD PROCESSES..."
 	@-killall -9 $(BIN)
@@ -47,11 +47,13 @@ start:
 	-/usr/local/bin/myone --battery-monitor > /dev/null 2>&1 & disown
 	-/usr/local/bin/myone --monitor-daemon > /dev/null 2>&1 & disown
 
-.PHONY: clean
+PHONY += clean
 clean:
 	@echo "CLEANING UP..."
 	$(GO) clean $(FLAGS) -i ./...
 	-rm -rf ./build
 
-.PHONY: full_install
+PHONY += full_install
 full_install: install dep start clean
+
+.PHONY: $(PHONY)
