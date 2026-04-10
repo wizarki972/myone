@@ -28,7 +28,7 @@ type HyprOption struct {
 func ActiveMonitor() (string, error) {
 	var monitors []hyprMonitor
 
-	output := cmds.ExecCommandWithOutput(hyprlandMonitorsComamnd)
+	output, _ := cmds.Exec_cmd_bytes(hyprlandMonitorsComamnd, true)
 	if err := json.Unmarshal(output, &monitors); err != nil {
 		panic(err)
 	}
@@ -43,12 +43,14 @@ func ActiveMonitor() (string, error) {
 
 func swayOSDNotify(backlight_name string) {
 	// maximum brightness
-	maxi, err := strconv.ParseFloat(strings.TrimSpace(string(cmds.ExecCommandWithOutput("brightnessctl -d "+backlight_name+" m"))), 64)
+	out, _ := cmds.Exec_cmd("brightnessctl -d "+backlight_name+" m", false, true, false)
+	maxi, err := strconv.ParseFloat(strings.TrimSpace(out), 64)
 	if err != nil {
 		panic(err)
 	}
 	// current brightness
-	curr, err := strconv.ParseFloat(strings.TrimSpace(string(cmds.ExecCommandWithOutput("brightnessctl -d "+backlight_name+" g"))), 64)
+	out, _ = cmds.Exec_cmd("brightnessctl -d "+backlight_name+" g", false, true, false)
+	curr, err := strconv.ParseFloat(strings.TrimSpace(out), 64)
 	if err != nil {
 		panic(err)
 	}
@@ -62,12 +64,12 @@ func swayOSDNotify(backlight_name string) {
 
 	// osd command
 	command := fmt.Sprintf("swayosd-client --monitor %s --custom-icon display-brightness --custom-progress %.2f --custom-progress-text '%.0f%%'", name, max(0.01, percent), percent*100)
-	cmds.ExecCommandNoFeedback(command)
+	cmds.Exec_cmd(command, false, false, false)
 }
 
 func GetScreenResolution() []int {
 	var monitors []hyprMonitor
-	output := cmds.ExecCommandWithOutput(hyprlandMonitorsComamnd)
+	output, _ := cmds.Exec_cmd_bytes(hyprlandMonitorsComamnd, true)
 	if err := json.Unmarshal(output, &monitors); err != nil {
 		panic(err)
 	}
@@ -83,7 +85,7 @@ func GetScreenResolution() []int {
 
 func GetHyprBorder() int {
 	command := "hyprctl -j getoption decoration:rounding"
-	output := cmds.ExecCommandWithOutput(command)
+	output, _ := cmds.Exec_cmd_bytes(command, true)
 
 	var hyprOption HyprOption
 	if err := json.Unmarshal([]byte(output), &hyprOption); err != nil {

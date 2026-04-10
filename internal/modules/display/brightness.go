@@ -24,5 +24,6 @@ func ChangeBrightness(value string) {
 
 func DefaultChangeBrightness(value string) error {
 	command := "brightnessctl s " + strings.TrimSpace(value)
-	return cmds.ExecComamndWithError(command)
+	_, err := cmds.Exec_cmd(command, false, false, false)
+	return err
 }

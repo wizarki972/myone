@@ -19,7 +19,7 @@ func Pkg_install(pkg_name string) {
 	if !cmds.Is_interactive_shell() {
 		cmds.ExecCommandInInteractiveShell(fmt.Sprintf("%s\nFollowing dependencies are needed, \n\t%s\nDo you want to install it?", common.MYONE_ASCII, pkg_name), "", "MyOne-Dependency-Install", command, true, false)
 	} else {
-		cmds.ExecCommandNoFeedback(command)
+		cmds.Exec_cmd(command, false, false, false)
 	}
 }
 
@@ -35,13 +35,13 @@ func Is_pkg_installed(pkg_name string) bool {
 
 	// logic
 	command := fmt.Sprintf("pacman -Q %s", pkg_name)
-	out, err := cmds.ExecCommand(command)
+	out, err := cmds.Exec_cmd(command, false, true, false)
 	if err != nil {
 		slog.Warn(pkg_name + " package not installed")
 		return false
 	}
 
-	return strings.HasPrefix(string(out), pkg_name)
+	return strings.HasPrefix(out, pkg_name)
 }
 
 // Installs linux packages for arch using pacman.

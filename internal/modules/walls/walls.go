@@ -208,7 +208,7 @@ func (w *Wall) ShowWallpaperChangeMenu() {
 	// PACK MENU
 	rofi_input := rofiWallMenuBuilder(w.wallDir, "dir")
 	command := fmt.Sprintf("printf '%s' | rofi -dmenu -theme %s/.config/rofi/clipboard.rasi", rofi_input, home)
-	selected_pack, err := cmds.ExecCommand(command)
+	selected_pack, err := cmds.Exec_cmd(command, false, true, false)
 	if err != nil {
 		panic(err)
 	}
@@ -234,7 +234,7 @@ func (w *Wall) ShowWallpaperChangeMenu() {
 	current_wall_path := filepath.Join(home, common.CURRENT_WALLPAPER_ENTRY_PATH)
 	fldir.CopyFile(filepath.Join(pack_dir, strings.TrimSpace(string(selection))), current_wall_path)
 	command = fmt.Sprintf("awww img %s --transition-type fade --transition-duration 0.5", current_wall_path)
-	if err = cmds.ExecComamndWithError(command); err != nil {
+	if _, err = cmds.Exec_cmd(command, false, false, false); err != nil {
 		panic(err)
 	}
 }
@@ -247,7 +247,7 @@ func rofiWallMenuBuilder(dir_path, mode string) string {
 
 	if len(entries) == 0 {
 		command := "notify-send 'No Wallpapers' 'Install a wallpaper package.\nRun `myone wallpapers --list-repo` command to see available packages.'"
-		cmds.ExecCommandNoFeedback(command)
+		cmds.Exec_cmd(command, false, false, false)
 		panic(errors.New("No wallpaper package is installed"))
 	}
 

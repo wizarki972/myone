@@ -55,7 +55,7 @@ func Logout(layout int) {
 	var err error
 
 	// this command is little different from other error checks
-	if err = cmds.ExecComamndWithError("pkill wlogout"); err == nil {
+	if _, err = cmds.Exec_cmd("pkill wlogout", false, false, false); err == nil {
 		return
 	}
 
@@ -95,7 +95,7 @@ func Logout(layout int) {
 	fldir.WriteStringToFile(stylesContent, cssPath)
 
 	command := fmt.Sprintf("wlogout -b %d -c 0 -r 0 -m 0 --layout %s --css %s --protocol layer-shell", cols, layoutPath, cssPath)
-	if err = cmds.ExecComamndWithError(command); err != nil {
+	if _, err = cmds.Exec_cmd(command, false, false, false); err != nil {
 		panic(err)
 	}
 }

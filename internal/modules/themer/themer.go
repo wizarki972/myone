@@ -11,7 +11,6 @@ import (
 
 	"github.com/wizarki972/myone/internal/common"
 	"github.com/wizarki972/myone/internal/modules/bootstrap"
-	"github.com/wizarki972/myone/internal/modules/display"
 	"github.com/wizarki972/myone/internal/utils/fldir"
 )
 
@@ -181,18 +180,6 @@ func (t *Themer) Apply_Theme() {
 	t.place_theme_dependent_files()
 	t.apply_colors()
 	fldir.WriteStringToFile(t.ThemeName, t.currentThemeNamePath)
-}
-
-// generates dynamic/placeholder values for dynamic config files
-func (t *Themer) generate_placeholder_values() {
-	t.themePlaceholderValues = map[string]string{
-		"${SCRIPTS_DIRECTORY_PATH}":   filepath.Join(t.homeDir, common.SCRIPTS_DIR),
-		"${CURRENT_WALLPAPER_PATH}":   filepath.Join(t.homeDir, common.CURRENT_WALLPAPER_ENTRY_PATH),
-		"${ALL_WALLS_DIRECTORY_PATH}": filepath.Join(t.homeDir, common.ALL_WALLS_DIR),
-		"${ROFI_IMAGE}":               t.get_rofi_image(),
-		"${SCREEN_WIDTH}":             strconv.Itoa(display.GetScreenResolution()[0]),
-		"${SCREEN_HEIGHT}":            strconv.Itoa(display.GetScreenResolution()[1]),
-	}
 }
 
 // changes colors files based on the theme

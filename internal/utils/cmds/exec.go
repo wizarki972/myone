@@ -1,7 +1,9 @@
 package cmds
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"syscall"
@@ -9,33 +11,53 @@ import (
 	"golang.org/x/term"
 )
 
-func ExecCommandNoFeedback(command string) {
+func Exec_cmd(command string, feedback, output, detach bool) (string, error) {
 	cmd := exec.Command("sh", "-c", command)
-	_ = cmd.Run()
-}
 
-func ExecCommandWithOutput(command string) []byte {
-	cmd := exec.Command("sh", "-c", command)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		panic(err)
+	var buf bytes.Buffer
+	if detach {
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			Setsid: true,
+		}
+		cmd.Stderr = nil
+		cmd.Stdin = nil
+		cmd.Stdout = nil
+	} else {
+		switch {
+		case feedback && output:
+			multi := io.MultiWriter(os.Stdout, &buf)
+			cmd.Stdout = multi
+			cmd.Stderr = os.Stderr
+		case feedback:
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+		case output:
+			cmd.Stdout = &buf
+		}
 	}
-	return out
+
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
 }
 
-func ExecComamndWithError(command string) error {
+func Exec_cmd_bytes(command string, output bool) ([]byte, error) {
+	var buf bytes.Buffer
+
 	cmd := exec.Command("sh", "-c", command)
-	_, err := cmd.CombinedOutput()
-	return err
+	if output {
+		cmd.Stdout = &buf
+	}
+	if err := cmd.Run(); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
-func ExecCommand(command string) ([]byte, error) {
-	cmd := exec.Command("sh", "-c", command)
-	output, err := cmd.CombinedOutput()
-	return output, err
-}
-
-func ExecCommandInInteractiveShell(msg, envs, title, command string, ask_permission, separate bool) {
+func ExecCommandInInteractiveShell(msg, envs, title, command string, ask_permission, detach bool) {
 	var cmd *exec.Cmd
 	if ask_permission {
 		cmd = exec.Command("bash", "-c", fmt.Sprintf("printf '%s [y/N]: ' && read ans && [[ '$ans' =~ ^[Yy]$ ]] && %s kitty --title %s -e sh -c \"%s && printf 'Press any key to exit...' && read\"", msg, envs, title, command))
@@ -43,7 +65,7 @@ func ExecCommandInInteractiveShell(msg, envs, title, command string, ask_permiss
 		cmd = exec.Command("bash", "-c", fmt.Sprintf("%s kitty --title %s -e sh -c \"%s && printf 'Press any key to exit...' && read\"", envs, title, command))
 	}
 
-	if separate {
+	if detach {
 		cmd.SysProcAttr = &syscall.SysProcAttr{
 			Setsid: true,
 		}
@@ -57,24 +79,7 @@ func ExecCommandInInteractiveShell(msg, envs, title, command string, ask_permiss
 	}
 }
 
-func ExecForSudo(command string) error {
-	cmd := exec.Command("bash", "-c", command)
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func Is_interactive_shell() bool {
 	return term.IsTerminal(int(os.Stdin.Fd())) &&
 		term.IsTerminal(int(os.Stdout.Fd()))
-}
-
-func Is_root() bool {
-	return os.Geteuid() == 0
-}
-
-func Has_sudo() bool {
-	cmd := exec.Command("sudo", "-n", "true")
-	return cmd.Run() == nil
 }

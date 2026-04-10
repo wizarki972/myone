@@ -65,7 +65,7 @@ func (b *Battery) BatteryState() string {
 func (b *Battery) CheckAndNotify() error {
 	level := b.RemainingBatteryPercent()
 	if b.BatteryState() == BatteryStates.Discharging && level < BatteryThreshold {
-		err := cmds.ExecComamndWithError("notify-send -u critical '󱐋 Time to recharge!' 'Battery is down below 20%' -i battery-caution -t 30000")
+		_, err := cmds.Exec_cmd("notify-send -u critical '󱐋 Time to recharge!' 'Battery is down below 20%' -i battery-caution -t 30000", false, false, false)
 		if err != nil {
 			return err
 		}

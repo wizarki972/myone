@@ -5,10 +5,25 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
+	"github.com/wizarki972/myone/internal/common"
+	"github.com/wizarki972/myone/internal/modules/display"
 	"github.com/wizarki972/myone/internal/utils/fldir"
 )
+
+// generates dynamic/placeholder values for dynamic config files
+func (t *Themer) generate_placeholder_values() {
+	t.themePlaceholderValues = map[string]string{
+		"${SCRIPTS_DIRECTORY_PATH}":   filepath.Join(t.homeDir, common.SCRIPTS_DIR),
+		"${CURRENT_WALLPAPER_PATH}":   filepath.Join(t.homeDir, common.CURRENT_WALLPAPER_ENTRY_PATH),
+		"${ALL_WALLS_DIRECTORY_PATH}": filepath.Join(t.homeDir, common.ALL_WALLS_DIR),
+		"${ROFI_IMAGE}":               t.get_rofi_image(),
+		"${SCREEN_WIDTH}":             strconv.Itoa(display.GetScreenResolution()[0]),
+		"${SCREEN_HEIGHT}":            strconv.Itoa(display.GetScreenResolution()[1]),
+	}
+}
 
 func (t *Themer) place_theme_dependent_files() {
 	td_path := filepath.Join(t.themesDir, "theme_deps")

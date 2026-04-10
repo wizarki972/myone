@@ -11,7 +11,7 @@ import (
 
 func OpenGUI() {
 	command := "flameshot gui --path " + fldir.GetXDGDir("PICTURES")
-	if err := cmds.ExecComamndWithError(command); err != nil {
+	if _, err := cmds.Exec_cmd(command, false, false, false); err != nil {
 		panic(err)
 	}
 }
