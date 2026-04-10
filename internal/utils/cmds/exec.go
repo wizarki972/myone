@@ -22,6 +22,10 @@ func Exec_cmd(command string, feedback, output, detach bool) (string, error) {
 		cmd.Stderr = nil
 		cmd.Stdin = nil
 		cmd.Stdout = nil
+
+		if err := cmd.Start(); err != nil {
+			return "", err
+		}
 	} else {
 		switch {
 		case feedback && output:
@@ -34,10 +38,9 @@ func Exec_cmd(command string, feedback, output, detach bool) (string, error) {
 		case output:
 			cmd.Stdout = &buf
 		}
-	}
-
-	if err := cmd.Run(); err != nil {
-		return "", err
+		if err := cmd.Run(); err != nil {
+			return "", err
+		}
 	}
 
 	return buf.String(), nil
@@ -72,9 +75,11 @@ func ExecCommandInInteractiveShell(msg, envs, title, command string, ask_permiss
 		cmd.Stderr = nil
 		cmd.Stdout = nil
 		cmd.Stdin = nil
-	}
 
-	if err := cmd.Run(); err != nil {
+		if err := cmd.Start(); err != nil {
+			panic(err)
+		}
+	} else if err := cmd.Run(); err != nil {
 		panic(err)
 	}
 }

@@ -180,6 +180,7 @@ func (t *Themer) Apply_Theme() {
 	t.place_theme_dependent_files()
 	t.apply_colors()
 	fldir.WriteStringToFile(t.ThemeName, t.currentThemeNamePath)
+	t.refresh_desktop()
 }
 
 // changes colors files based on the theme
