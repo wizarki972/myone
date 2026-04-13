@@ -25,10 +25,11 @@ type HyprOption struct {
 	Set    bool   `json:"set"`
 }
 
+// gets active monitor using hyprctl
 func ActiveMonitor() (string, error) {
 	var monitors []hyprMonitor
 
-	output, _ := cmds.Exec_cmd_bytes(hyprlandMonitorsComamnd, true)
+	output, _ := cmds.ExecCommandBytes(hyprlandMonitorsComamnd, true)
 	if err := json.Unmarshal(output, &monitors); err != nil {
 		panic(err)
 	}
@@ -41,15 +42,16 @@ func ActiveMonitor() (string, error) {
 	return "", errors.New("no active monitor found...")
 }
 
+// swayosd notify
 func swayOSDNotify(backlight_name string) {
 	// maximum brightness
-	out, _ := cmds.Exec_cmd("brightnessctl -d "+backlight_name+" m", false, true, false)
+	out, _ := cmds.ExecCommand("brightnessctl -d "+backlight_name+" m", false, true)
 	maxi, err := strconv.ParseFloat(strings.TrimSpace(out), 64)
 	if err != nil {
 		panic(err)
 	}
 	// current brightness
-	out, _ = cmds.Exec_cmd("brightnessctl -d "+backlight_name+" g", false, true, false)
+	out, _ = cmds.ExecCommand("brightnessctl -d "+backlight_name+" g", false, true)
 	curr, err := strconv.ParseFloat(strings.TrimSpace(out), 64)
 	if err != nil {
 		panic(err)
@@ -64,12 +66,13 @@ func swayOSDNotify(backlight_name string) {
 
 	// osd command
 	command := fmt.Sprintf("swayosd-client --monitor %s --custom-icon display-brightness --custom-progress %.2f --custom-progress-text '%.0f%%'", name, max(0.01, percent), percent*100)
-	cmds.Exec_cmd(command, false, false, false)
+	cmds.ExecCommand(command, false, false)
 }
 
+// gets screen resolution using hyprctl
 func GetScreenResolution() []int {
 	var monitors []hyprMonitor
-	output, _ := cmds.Exec_cmd_bytes(hyprlandMonitorsComamnd, true)
+	output, _ := cmds.ExecCommandBytes(hyprlandMonitorsComamnd, true)
 	if err := json.Unmarshal(output, &monitors); err != nil {
 		panic(err)
 	}
@@ -83,9 +86,10 @@ func GetScreenResolution() []int {
 	panic(errors.New("focused monitor not found"))
 }
 
+// gets border thickness value from hyprland config
 func GetHyprBorder() int {
 	command := "hyprctl -j getoption decoration:rounding"
-	output, _ := cmds.Exec_cmd_bytes(command, true)
+	output, _ := cmds.ExecCommandBytes(command, true)
 
 	var hyprOption HyprOption
 	if err := json.Unmarshal([]byte(output), &hyprOption); err != nil {

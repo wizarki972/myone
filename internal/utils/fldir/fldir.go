@@ -236,7 +236,7 @@ func DownloadURL(URL, destination string, want_progress bool) {
 // USER
 
 func GetXDGDir(name string) string {
-	output, err := cmds.Exec_cmd("xdg-user-dir "+name, false, true, false)
+	output, err := cmds.ExecCommand("xdg-user-dir "+name, false, true)
 	if err != nil {
 		panic(err)
 	}

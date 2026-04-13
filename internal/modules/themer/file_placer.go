@@ -14,7 +14,7 @@ import (
 )
 
 // generates dynamic/placeholder values for dynamic config files
-func (t *Themer) generate_placeholder_values() {
+func (t *Themer) generatePlaceholderValues() {
 	t.themePlaceholderValues = map[string]string{
 		"${SCRIPTS_DIRECTORY_PATH}":   filepath.Join(t.homeDir, common.SCRIPTS_DIR),
 		"${CURRENT_WALLPAPER_PATH}":   filepath.Join(t.homeDir, common.CURRENT_WALLPAPER_ENTRY_PATH),
@@ -25,7 +25,7 @@ func (t *Themer) generate_placeholder_values() {
 	}
 }
 
-func (t *Themer) place_theme_dependent_files() {
+func (t *Themer) placeThemeDependentFiles() {
 	td_path := filepath.Join(t.themesDir, "theme_deps")
 
 	// checks
@@ -43,27 +43,27 @@ func (t *Themer) place_theme_dependent_files() {
 	}
 
 	// place files logic
-	if err := t.place_files_logic(td_path, "", true); err != nil {
+	if err := t.placeFilesLogic(td_path, "", true); err != nil {
 		slog.Warn(err.Error())
 	}
 
 }
 
-func (t *Themer) place_common_files() {
+func (t *Themer) placeCommonFiles() {
 	common_dir := filepath.Join(t.themesDir, "common")
 	if !fldir.IsPathExist(common_dir) {
 		slog.Info("Theme not found, trying to update themes...")
 		t.Download()
 	}
 
-	if err := t.place_files_logic(common_dir, "", false); err != nil {
+	if err := t.placeFilesLogic(common_dir, "", false); err != nil {
 		panic(err)
 	}
 
 	t.set_common_state(true)
 }
 
-func (t *Themer) place_files_logic(path, suffix string, force_fill bool) error {
+func (t *Themer) placeFilesLogic(path, suffix string, force_fill bool) error {
 	entries, err := os.ReadDir(path)
 	if err != nil {
 		panic(err)
@@ -77,7 +77,7 @@ func (t *Themer) place_files_logic(path, suffix string, force_fill bool) error {
 		entry_path := filepath.Join(path, entry.Name())
 
 		if entry.IsDir() {
-			t.place_files_logic(entry_path, filepath.Join(suffix, entry.Name()), force_fill)
+			t.placeFilesLogic(entry_path, filepath.Join(suffix, entry.Name()), force_fill)
 		} else {
 			fldir.CreateDirectory(filepath.Join(t.homeDir, suffix))
 			if force_fill || strings.HasPrefix(entry.Name(), "$") {

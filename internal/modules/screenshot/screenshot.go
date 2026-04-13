@@ -9,9 +9,8 @@ import (
 // when initial setup - set autostart to false
 // also set useGrimAdapter=true in ~/.config/flameshot/flameshot.ini
 
+// runs flameshot screenshot utility
 func OpenGUI() {
 	command := "flameshot gui --path " + fldir.GetXDGDir("PICTURES")
-	if _, err := cmds.Exec_cmd(command, false, false, false); err != nil {
-		panic(err)
-	}
+	cmds.ExecCommandDetached(command)
 }

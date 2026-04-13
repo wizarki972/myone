@@ -51,7 +51,7 @@ func NewMonitorDaemon() *MonitorDaemon {
 
 	var monitors []hyprMonitor
 	command := "hyprctl -j monitors"
-	data, _ := cmds.Exec_cmd_bytes(command, true)
+	data, _ := cmds.ExecCommandBytes(command, true)
 	if err := json.Unmarshal(data, &monitors); err != nil {
 		panic(err)
 	}
@@ -112,7 +112,7 @@ func (md *MonitorDaemon) GenerateMonitor(name string) {
 
 func (md *MonitorDaemon) ChangeBrightness(name, value string) {
 	command := fmt.Sprintf("brightnessctl -d %s set %s", md.Monitors[name].Backlight_name, value)
-	_, err := cmds.Exec_cmd(command, false, false, false)
+	_, err := cmds.ExecCommand(command, false, false)
 	if err == nil {
 		md.mu.RLock()
 		defer md.mu.RUnlock()

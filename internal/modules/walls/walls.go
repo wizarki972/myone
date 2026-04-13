@@ -29,6 +29,7 @@ type index struct {
 	ZipName string
 }
 
+// generates Wall struct
 func NewWall() *Wall {
 	return &Wall{
 		wallDir:            WALLS_DIR,
@@ -50,6 +51,7 @@ type Wall struct {
 	is_repo_refreshed  bool
 }
 
+// loads locally installed pack info
 func (w *Wall) RefreshLocalIndices() {
 	if w.is_local_refreshed {
 		return
@@ -90,6 +92,7 @@ func (w *Wall) RefreshLocalIndices() {
 	w.is_local_refreshed = true
 }
 
+// loads info of availbale packs in repo
 func (w *Wall) RefreshRepoIndices() {
 	if w.is_repo_refreshed {
 		return
@@ -118,6 +121,7 @@ func (w *Wall) RefreshRepoIndices() {
 	w.is_repo_refreshed = true
 }
 
+// lists all packs installed and not installed with an indicator
 func (w *Wall) List() {
 	w.RefreshLocalIndices()
 	w.RefreshRepoIndices()
@@ -137,6 +141,7 @@ func (w *Wall) List() {
 	}
 }
 
+// remove an installed wall pack
 func (w *Wall) Remove(pack_name string) {
 	w.RefreshLocalIndices()
 	w.RefreshRepoIndices()
@@ -154,6 +159,7 @@ func (w *Wall) Remove(pack_name string) {
 	w.WriteIndex()
 }
 
+// install a wall pack from repo
 func (w *Wall) Install(pack_name string) {
 	w.RefreshRepoIndices()
 	w.RefreshLocalIndices()
@@ -191,6 +197,7 @@ func (w *Wall) Install(pack_name string) {
 	fmt.Printf("INSTALLED %s Wallpaper pack", pack.Name)
 }
 
+// writes the index of locally installed wall packs
 func (w *Wall) WriteIndex() {
 	var b strings.Builder
 	for _, v := range w.local_indices {
@@ -200,6 +207,7 @@ func (w *Wall) WriteIndex() {
 	fldir.WriteStringToFile(b.String(), w.indexPath)
 }
 
+// shows the wallpaper change menu using rofi
 func (w *Wall) ShowWallpaperChangeMenu() {
 	w.RefreshLocalIndices()
 
@@ -208,7 +216,7 @@ func (w *Wall) ShowWallpaperChangeMenu() {
 	// PACK MENU
 	rofi_input := rofiWallMenuBuilder(w.wallDir, "dir")
 	command := fmt.Sprintf("printf '%s' | rofi -dmenu -theme %s/.config/rofi/clipboard.rasi", rofi_input, home)
-	selected_pack, err := cmds.Exec_cmd(command, false, true, false)
+	selected_pack, err := cmds.ExecCommand(command, false, true)
 	if err != nil {
 		panic(err)
 	}
@@ -234,11 +242,12 @@ func (w *Wall) ShowWallpaperChangeMenu() {
 	current_wall_path := filepath.Join(home, common.CURRENT_WALLPAPER_ENTRY_PATH)
 	fldir.CopyFile(filepath.Join(pack_dir, strings.TrimSpace(string(selection))), current_wall_path)
 	command = fmt.Sprintf("awww img %s --transition-type fade --transition-duration 0.5", current_wall_path)
-	if _, err = cmds.Exec_cmd(command, false, false, false); err != nil {
+	if _, err = cmds.ExecCommand(command, false, false); err != nil {
 		panic(err)
 	}
 }
 
+// reads the walls directory and creates a list for rofi to display
 func rofiWallMenuBuilder(dir_path, mode string) string {
 	entries, err := os.ReadDir(dir_path)
 	if err != nil {
@@ -247,7 +256,7 @@ func rofiWallMenuBuilder(dir_path, mode string) string {
 
 	if len(entries) == 0 {
 		command := "notify-send 'No Wallpapers' 'Install a wallpaper package.\nRun `myone wallpapers --list-repo` command to see available packages.'"
-		cmds.Exec_cmd(command, false, false, false)
+		cmds.ExecCommand(command, false, false)
 		panic(errors.New("No wallpaper package is installed"))
 	}
 

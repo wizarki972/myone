@@ -10,6 +10,7 @@ import (
 	"github.com/wizarki972/myone/internal/utils/cmds"
 )
 
+// sends a signal to monitor daemon to change the brightness
 func ChangeBrightness(value string) {
 	sock := filepath.Join(os.Getenv("XDG_RUNTIME_DIR"), "myone-display-monitor.sock")
 	conn, err := net.Dial("unix", sock)
@@ -22,8 +23,8 @@ func ChangeBrightness(value string) {
 	conn.Write([]byte(value + "\n"))
 }
 
-func DefaultChangeBrightness(value string) error {
+// Changes brightness
+func DefaultChangeBrightness(value string) {
 	command := "brightnessctl s " + strings.TrimSpace(value)
-	_, err := cmds.Exec_cmd(command, false, false, false)
-	return err
+	cmds.ExecCommandDetached(command)
 }

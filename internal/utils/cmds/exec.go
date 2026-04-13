@@ -11,45 +11,48 @@ import (
 	"golang.org/x/term"
 )
 
-func Exec_cmd(command string, feedback, output, detach bool) (string, error) {
-	cmd := exec.Command("sh", "-c", command)
+func ExecCommand(command string, feedback, output bool) (string, error) {
+	cmd := exec.Command("bash", "-c", command)
 
 	var buf bytes.Buffer
-	if detach {
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			Setsid: true,
-		}
-		cmd.Stderr = nil
-		cmd.Stdin = nil
-		cmd.Stdout = nil
-
-		if err := cmd.Start(); err != nil {
-			return "", err
-		}
-	} else {
-		switch {
-		case feedback && output:
-			multi := io.MultiWriter(os.Stdout, &buf)
-			cmd.Stdout = multi
-			cmd.Stderr = os.Stderr
-		case feedback:
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-		case output:
-			cmd.Stdout = &buf
-		}
-		if err := cmd.Run(); err != nil {
-			return "", err
-		}
+	switch {
+	case feedback && output:
+		multi := io.MultiWriter(os.Stdout, &buf)
+		cmd.Stdout = multi
+		cmd.Stderr = os.Stderr
+	case feedback:
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	case output:
+		cmd.Stdout = &buf
+	}
+	if err := cmd.Run(); err != nil {
+		return "", err
 	}
 
 	return buf.String(), nil
 }
 
-func Exec_cmd_bytes(command string, output bool) ([]byte, error) {
+func ExecCommandDetached(command string) {
+	cmd := exec.Command("bash", "-c", command)
+
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setsid: true,
+	}
+	cmd.Stderr = nil
+	cmd.Stdin = nil
+	cmd.Stdout = nil
+
+	if err := cmd.Start(); err != nil {
+		panic(err)
+	}
+
+}
+
+func ExecCommandBytes(command string, output bool) ([]byte, error) {
 	var buf bytes.Buffer
 
-	cmd := exec.Command("sh", "-c", command)
+	cmd := exec.Command("bash", "-c", command)
 	if output {
 		cmd.Stdout = &buf
 	}
@@ -60,12 +63,12 @@ func Exec_cmd_bytes(command string, output bool) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func ExecCommandInInteractiveShell(msg, envs, title, command string, ask_permission, detach bool) {
+func ExecCommandInInInteractiveShell(msg, title, command string, ask_user_permission, detach bool) {
 	var cmd *exec.Cmd
-	if ask_permission {
-		cmd = exec.Command("bash", "-c", fmt.Sprintf("printf '%s [y/N]: ' && read ans && [[ '$ans' =~ ^[Yy]$ ]] && %s kitty --title %s -e sh -c \"%s && printf 'Press any key to exit...' && read\"", msg, envs, title, command))
+	if ask_user_permission {
+		cmd = exec.Command("bash", "-c", fmt.Sprintf("printf '%s [y/N]: ' && read ans && [[ '$ans' =~ ^[Yy]$ ]] && kitty --title %s -e sh -c \"%s && printf 'Press any key to exit...' && read\"", msg, title, command))
 	} else {
-		cmd = exec.Command("bash", "-c", fmt.Sprintf("%s kitty --title %s -e sh -c \"%s && printf 'Press any key to exit...' && read\"", envs, title, command))
+		cmd = exec.Command("bash", "-c", fmt.Sprintf("kitty --title %s -e sh -c \"%s && printf 'Press any key to exit...' && read\"", title, command))
 	}
 
 	if detach {
@@ -84,7 +87,7 @@ func ExecCommandInInteractiveShell(msg, envs, title, command string, ask_permiss
 	}
 }
 
-func Is_interactive_shell() bool {
+func IsInteractiveShell() bool {
 	return term.IsTerminal(int(os.Stdin.Fd())) &&
 		term.IsTerminal(int(os.Stdout.Fd()))
 }

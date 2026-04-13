@@ -7,12 +7,13 @@ import (
 	"github.com/wizarki972/myone/internal/utils/cmds"
 )
 
-func (t *Themer) refresh_desktop() {
+// refreshes waybar, swaync after theme change
+func (t *Themer) refreshDesktop() {
 	var processes = []string{"waybar", "swaync"}
 
 	for _, name := range processes {
 		command := fmt.Sprintf("pkill -x %s && %s", name, name)
-		_, err := cmds.Exec_cmd(command, false, false, true)
+		_, err := cmds.ExecCommand(command, false, false)
 		if err != nil {
 			slog.Error(fmt.Sprintf("failed while refreshing %s this process.", name))
 			panic(err)

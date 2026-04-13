@@ -9,6 +9,7 @@ import (
 	"github.com/wizarki972/myone/internal/utils/cmds"
 )
 
+// swayosd icon for respective volume level
 func getIcon(value float64) string {
 	switch {
 	case value == -999:
@@ -22,6 +23,7 @@ func getIcon(value float64) string {
 	}
 }
 
+// swayosd for volume change
 func NotifyVolume(device string) {
 
 	if device == "source" {
@@ -29,9 +31,9 @@ func NotifyVolume(device string) {
 	} else {
 		device = "@DEFAULT_SINK@"
 	}
-	out, _ := cmds.Exec_cmd(fmt.Sprintf("wpctl get-volume %s", device), false, true, false)
+	out, _ := cmds.ExecCommand(fmt.Sprintf("wpctl get-volume %s", device), false, true)
 	current, _ := strconv.ParseFloat(strings.TrimPrefix(strings.TrimSpace(out), "Volume: "), 64)
 	monitor, _ := display.ActiveMonitor()
 	command := fmt.Sprintf("swayosd-client --monitor %s --custom-icon %s --custom-progress %.2f", monitor, getIcon(current*100.0), current)
-	cmds.Exec_cmd(command, false, false, false)
+	cmds.ExecCommand(command, false, false)
 }

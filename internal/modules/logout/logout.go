@@ -10,6 +10,7 @@ import (
 	"github.com/wizarki972/myone/internal/utils/fldir"
 )
 
+// values to structure wlogout menu
 func GetLogoutValues(layout int) (map[string]string, error) {
 	vals := display.GetScreenResolution()
 	width := vals[0]
@@ -49,27 +50,20 @@ func GetLogoutValues(layout int) (map[string]string, error) {
 	return logoutValues, nil
 }
 
+// generates wlogout css file and shows the menu
 func Logout(layout int) {
 	var logoutValues map[string]string
 	var cols int
 	var err error
 
 	// this command is little different from other error checks
-	if _, err = cmds.Exec_cmd("pkill wlogout", false, false, false); err == nil {
+	if _, err = cmds.ExecCommand("pkill wlogout", false, false); err == nil {
 		return
 	}
 
 	home := fldir.GetHomeDir()
 	layoutPath := fmt.Sprintf("%s/.config/wlogout/layout_%d", home, layout)
 	stylesPath := fmt.Sprintf("%s/.config/wlogout/style_%d.css", home, layout)
-
-	// Testing 3rd layout
-	// if layout == 3 {
-	// 	command := fmt.Sprintf("wlogout -b %d -c 0 -r 0 -m 0 --layout %s --css %s --protocol layer-shell", 3, layoutPath, stylesPath)
-	// 	if err = cmds.ExecComamndWithError(command); err != nil {
-	// 		panic(err)
-	// 	}
-	// }
 
 	stylesContent, err := fldir.ReadFileAsString(stylesPath)
 	if err != nil {
@@ -95,7 +89,5 @@ func Logout(layout int) {
 	fldir.WriteStringToFile(stylesContent, cssPath)
 
 	command := fmt.Sprintf("wlogout -b %d -c 0 -r 0 -m 0 --layout %s --css %s --protocol layer-shell", cols, layoutPath, cssPath)
-	if _, err = cmds.Exec_cmd(command, false, false, false); err != nil {
-		panic(err)
-	}
+	cmds.ExecCommandDetached(command)
 }

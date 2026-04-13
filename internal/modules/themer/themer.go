@@ -135,7 +135,7 @@ func (t *Themer) Download() {
 
 // Installs the downloaded config/theme files
 func (t *Themer) Install() {
-	t.generate_placeholder_values()
+	t.generatePlaceholderValues()
 	// Dir checks
 	if !fldir.IsPathExist(t.themesDir) {
 		slog.Info("Theme not found, trying to update themes...")
@@ -152,10 +152,10 @@ func (t *Themer) Install() {
 	}
 
 	// placing files
-	t.place_common_files()
+	t.placeCommonFiles()
 
 	// theme dependent file
-	t.place_theme_dependent_files()
+	t.placeThemeDependentFiles()
 
 	// applying colors
 	t.apply_colors()
@@ -164,7 +164,7 @@ func (t *Themer) Install() {
 	dep_lst_path := filepath.Join(t.themesDir, "deps.lst")
 	if fldir.IsPathExist(dep_lst_path) {
 		fmt.Println("Dependency check...")
-		bootstrap.Install_pkgs_from_file(dep_lst_path)
+		bootstrap.InstallPkgsFromFile(dep_lst_path)
 	}
 
 	// writing current theme
@@ -173,14 +173,14 @@ func (t *Themer) Install() {
 
 // applies themes
 func (t *Themer) Apply_Theme() {
-	t.generate_placeholder_values()
+	t.generatePlaceholderValues()
 	if !t.common_state() {
-		t.place_common_files()
+		t.placeCommonFiles()
 	}
-	t.place_theme_dependent_files()
+	t.placeThemeDependentFiles()
 	t.apply_colors()
 	fldir.WriteStringToFile(t.ThemeName, t.currentThemeNamePath)
-	t.refresh_desktop()
+	t.refreshDesktop()
 }
 
 // changes colors files based on the theme

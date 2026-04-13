@@ -51,7 +51,7 @@ var rootCMD = &cobra.Command{
 		}
 
 		if update {
-			bootstrap.Self_update()
+			bootstrap.SelfUpdate()
 		}
 
 		if dep_check {
