@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"syscall"
 
 	"golang.org/x/term"
@@ -64,11 +65,17 @@ func ExecCommandBytes(command string, output bool) ([]byte, error) {
 }
 
 func ExecCommandInInInteractiveShell(msg, title, command string, ask_user_permission, detach bool) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println("==> [ERROR] Cannot get user home directory.")
+		os.Exit(1)
+	}
+	kittyConfig := filepath.Join(home, ".config/kitty/kitty_popup.conf")
 	var cmd *exec.Cmd
 	if ask_user_permission {
-		cmd = exec.Command("bash", "-c", fmt.Sprintf("printf '%s [y/N]: ' && read ans && [[ '$ans' =~ ^[Yy]$ ]] && kitty --title %s -e sh -c \"%s && printf 'Press any key to exit...' && read\"", msg, title, command))
+		cmd = exec.Command("bash", "-c", fmt.Sprintf("printf '%s [y/N]: ' && read ans && [[ '$ans' =~ ^[Yy]$ ]] && kitty -c %s --title %s -e sh -c \"%s && printf 'Press any key to exit...' && read\"", msg, kittyConfig, title, command))
 	} else {
-		cmd = exec.Command("bash", "-c", fmt.Sprintf("kitty --title %s -e sh -c \"%s && printf 'Press any key to exit...' && read\"", title, command))
+		cmd = exec.Command("bash", "-c", fmt.Sprintf("kitty -c %s --title %s -e sh -c \"%s && printf 'Press any key to exit...' && read\"", kittyConfig, title, command))
 	}
 
 	if detach {
