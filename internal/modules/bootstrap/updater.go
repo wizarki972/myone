@@ -25,7 +25,7 @@ func isLatest() (bool, string) {
 	ver_str := fldir.ReadTextFileFromURL(VERSION_URL, false, "")
 	out, err := strconv.ParseFloat(strings.SplitN(ver_str, ".", 2)[1], 64)
 	if err != nil {
-		panic(err)
+		logger.Log("Failed parse latest version value from repo.", logger.LogTypes.Error, err)
 	}
 	return out == common.GetVersionFloat(), ver_str
 }
