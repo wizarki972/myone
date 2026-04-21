@@ -5,29 +5,38 @@ import (
 	"github.com/wizarki972/myone/internal/modules/themer"
 )
 
-var update_themes, force_update_themes bool
-var apply_theme string
+var updateThemes, forceUpdateThemes bool
+var applyTheme string
 
 var themesCMD = &cobra.Command{
 	Use:   "themes",
 	Short: "manage themes here...",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var t *themer.Themer
+		loggerInstance = handleLogg()
+		loggerInstance.AddSubCommand("myone themes")
 
-		if len(apply_theme) > 0 {
-			t = themer.NewThemer(apply_theme)
+		var t *themer.Themer
+		if len(applyTheme) > 0 {
+			loggerInstance.AddFlag("apply")
+			t = themer.NewThemer(applyTheme, loggerInstance)
 			t.Apply_Theme()
 		} else {
-			t = themer.NewThemer("")
+			t = themer.NewThemer("", loggerInstance)
 		}
 
-		if update_themes && !force_update_themes {
+		if updateThemes && !forceUpdateThemes {
+			loggerInstance.AddFlag("update")
 			t.Update()
 		}
 
-		if force_update_themes {
+		if forceUpdateThemes {
+			loggerInstance.AddFlag("force-update")
 			t.Download()
 			t.Install()
+		}
+
+		if saveLog || len(logPath) > 0 {
+			loggerInstance.SaveBook()
 		}
 
 		return nil
@@ -35,11 +44,15 @@ var themesCMD = &cobra.Command{
 }
 
 func initializeThemesFlags() {
-	themesCMD.Flags().BoolVarP(&update_themes, "update", "u", false, "updates all the local themes.")
+	themesCMD.Flags().BoolVarP(&updateThemes, "update", "u", false, "updates all the local themes.")
 
-	themesCMD.Flags().BoolVarP(&force_update_themes, "force-update", "f", false, "Re-downloads all themes and installs it.")
+	themesCMD.Flags().BoolVarP(&forceUpdateThemes, "force-update", "f", false, "Re-downloads all themes and installs it.")
 
-	themesCMD.Flags().StringVarP(&apply_theme, "apply", "a", "", "Applies the specified theme.")
+	themesCMD.Flags().StringVarP(&applyTheme, "apply", "a", "", "Applies the specified theme.")
+
+	themesCMD.Flags().BoolVar(&saveLog, "save-log", false, "saves the based on the default path or path specified in config.\nNo need to use this flag, if you are using --log-path flag.")
+
+	themesCMD.Flags().StringVar(&logPath, "log-path", "", "Enter the path to save the log.")
 
 	rootCMD.AddCommand(themesCMD)
 }

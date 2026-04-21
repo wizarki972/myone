@@ -12,38 +12,47 @@ import (
 	"github.com/wizarki972/myone/internal/modules/display"
 	"github.com/wizarki972/myone/internal/modules/logout"
 	"github.com/wizarki972/myone/internal/modules/screenshot"
+	"github.com/wizarki972/myone/internal/utils/logger"
+	"github.com/wizarki972/myone/internal/utils/pkg"
 )
 
-var brightness, vol_notify string
-var log_out int
-var screen_shot, monitor_daemon, batt_mon, version, update, dep_check bool
+var brightness, volumeNotify, logPath string
+var logOut int
+var screenShot, monitorDaemon, batteryMonitor, version, update, depCheck, saveLog bool
+var loggerInstance *logger.LogBook
 
 var rootCMD = &cobra.Command{
 	Use:   "myone",
 	Short: "my one utility for my needs",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		loggerInstance = handleLogg()
+		loggerInstance.AddSubCommand("myone")
+
 		if len(brightness) > 0 {
 			display.ChangeBrightness(brightness)
 		}
 
-		if log_out > 0 {
-			logout.Logout(min(log_out, 2))
+		if logOut > 0 {
+			loggerInstance.AddFlag("logout")
+			logout.Logout(min(logOut, 2), loggerInstance)
 		}
 
-		if len(vol_notify) > 0 {
-			audio.NotifyVolume(vol_notify)
+		if len(volumeNotify) > 0 {
+			audio.NotifyVolume(volumeNotify)
 		}
 
-		if screen_shot {
+		if screenShot {
 			screenshot.OpenGUI()
 		}
 
-		if batt_mon {
-			battery.NewBatteryMonitor().StartMonitor()
+		if batteryMonitor {
+			loggerInstance.AddFlag("battery-monitor")
+			battery.NewBatteryMonitor(loggerInstance).StartMonitor()
 		}
 
-		if monitor_daemon {
-			display.NewMonitorDaemon().StartDaemon()
+		if monitorDaemon {
+			loggerInstance.AddFlag("monitor-daemon")
+			display.NewMonitorDaemon(loggerInstance).StartDaemon()
 		}
 
 		if version {
@@ -51,11 +60,16 @@ var rootCMD = &cobra.Command{
 		}
 
 		if update {
-			bootstrap.SelfUpdate()
+			loggerInstance.AddFlag("update")
+			bootstrap.SelfUpdate(loggerInstance)
 		}
 
-		if dep_check {
-			bootstrap.Dependency_check()
+		if depCheck {
+			pkg.Dependency_check()
+		}
+
+		if saveLog || len(logPath) > 0 {
+			loggerInstance.SaveBook()
 		}
 
 		return nil
@@ -65,21 +79,25 @@ var rootCMD = &cobra.Command{
 func initializeFlags() {
 	rootCMD.Flags().StringVar(&brightness, "bright", "", "+5% - increases the brightness by 5%, \n-5% decreases the brightness by 5%.")
 
-	rootCMD.Flags().IntVar(&log_out, "logout", 0, "accepted values 1, 2. Displays power menu.")
+	rootCMD.Flags().IntVar(&logOut, "logout", 0, "accepted values 1, 2. Displays power menu.")
 
-	rootCMD.Flags().StringVar(&vol_notify, "volume-osd", "", "just tells swayosd to show current volume level of the current sink(speaker or output device)/source(microphone or input device).\nAccepted values: sink, source.")
+	rootCMD.Flags().StringVar(&volumeNotify, "volume-osd", "", "just tells swayosd to show current volume level of the current sink(speaker or output device)/source(microphone or input device).\nAccepted values: sink, source.")
 
-	rootCMD.Flags().BoolVar(&screen_shot, "screenshot", false, "opens flameshot gui with the XDG_USER_DIR/Screenshot as the save path.")
+	rootCMD.Flags().BoolVar(&screenShot, "screenshot", false, "opens flameshot gui with the XDG_USER_DIR/Screenshot as the save path.")
 
-	rootCMD.Flags().BoolVar(&batt_mon, "battery-monitor", false, "continously checks battery level and notifies the user when its lower.")
+	rootCMD.Flags().BoolVar(&batteryMonitor, "battery-monitor", false, "continously checks battery level and notifies the user when its lower.")
 
-	rootCMD.Flags().BoolVar(&monitor_daemon, "monitor-daemon", false, "continuosly checks for new/removed monitors and changes the brightness based on the focused monitor.\n NOTE: does not support OLED or LED displays. Only supports LCD displays (displays with backlight).")
+	rootCMD.Flags().BoolVar(&monitorDaemon, "monitor-daemon", false, "continuosly checks for new/removed monitors and changes the brightness based on the focused monitor.\n NOTE: does not support OLED or LED displays. Only supports LCD displays (displays with backlight).")
 
 	rootCMD.Flags().BoolVarP(&version, "version", "v", false, "prints the package version.")
 
 	rootCMD.Flags().BoolVarP(&update, "update", "u", false, "for updating the package.")
 
-	rootCMD.Flags().BoolVar(&dep_check, "dependency-check", false, "checks whether all dependencies are installed.")
+	rootCMD.Flags().BoolVar(&depCheck, "dependency-check", false, "checks whether all dependencies are installed.")
+
+	rootCMD.Flags().BoolVar(&saveLog, "save-log", false, "saves the based on the default path or path specified in config.\nNo need to use this flag, if you are using --log-path flag.")
+
+	rootCMD.Flags().StringVar(&logPath, "log-path", "", "Enter the path to save the log.")
 
 	initializeThemesFlags()
 	initializeWallsFlags()

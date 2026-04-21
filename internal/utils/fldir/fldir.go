@@ -227,7 +227,7 @@ func DownloadURL(URL, destination string, want_progress bool) {
 			fmt.Println()
 			panic(err)
 		}
-		fmt.Println("\nDone")
+		fmt.Println("\r-> Finished Downloading")
 	} else if _, err := io.Copy(out, resp.Body); err != nil {
 		panic(err)
 	}

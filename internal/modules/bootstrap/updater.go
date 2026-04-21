@@ -11,6 +11,7 @@ import (
 	"github.com/wizarki972/myone/internal/common"
 	"github.com/wizarki972/myone/internal/utils/cmds"
 	"github.com/wizarki972/myone/internal/utils/fldir"
+	"github.com/wizarki972/myone/internal/utils/logger"
 )
 
 const VERSION_URL = "https://raw.githubusercontent.com/wizarki972/myone/main/VERSION"
@@ -29,7 +30,7 @@ func isLatest() (bool, string) {
 	return out == common.GetVersionFloat(), ver_str
 }
 
-func SelfUpdate() {
+func SelfUpdate(logg_book *logger.LogBook) {
 	ok, latest := isLatest()
 
 	// If the version in repo is not the one installed then it will perform update/downgrade
@@ -41,7 +42,7 @@ func SelfUpdate() {
 			fmt.Print(common.MYONE_ASCII)
 
 			// getting user consent
-			fmt.Printf("Update available %s ==> %s\n", common.VERSION, latest)
+			fmt.Printf("\nUpdate available %s ==> %s\n", common.VERSION, latest)
 			fmt.Print("Do you wish to update? [Y/n]: ")
 
 			var response string
@@ -65,7 +66,8 @@ func SelfUpdate() {
 
 				if err := cmd.Run(); err != nil {
 					os.RemoveAll(cache_dir)
-					panic(err)
+					logg_book.EnterLogAndPrint("Error while running 'make full_install', in the downloaded source tree.", logger.LogTypes.Error, err)
+
 				}
 
 				// cleaning up cache

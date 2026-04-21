@@ -1,8 +1,8 @@
-package bootstrap
+package pkg
 
 import (
+	"errors"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	"github.com/wizarki972/myone/internal/common"
@@ -10,17 +10,17 @@ import (
 	"github.com/wizarki972/myone/internal/utils/fldir"
 )
 
-// All dependencies needed by this package alone, not by the themes
 const DEPENDENCIES = "go hyprland wireplumber blueman waybar rofi brightnessctl wiremix nwg-displays nwg-look nautilus wl-clipboard kitty swaync swayosd flameshot awww wlogout"
 
 // Installs the given package names using pacman
-func PkgInstall(pkg_name string) {
+func PkgInstall(pkg_name string) error {
 	command := fmt.Sprintf("sudo pacman -Sy --needed --noconfirm %s", pkg_name)
 	if !cmds.IsInteractiveShell() {
 		cmds.ExecCommandInInInteractiveShell(fmt.Sprintf("%s\nFollowing dependencies are needed, \n\t%s\nDo you want to install it?", common.MYONE_ASCII, pkg_name), "MyOne-Dependency-Install", command, true, false)
 	} else if _, err := cmds.ExecCommand(command, true, false); err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 // Checks whether a certain package is installed or not.
@@ -29,7 +29,7 @@ func IsPkgInstalled(pkg_name string) bool {
 
 	// check
 	if len(pkg_name) == 0 {
-		slog.Warn("Enter a package name to check package's installation status")
+		// slog.Warn("Enter a package name to check package's installation status")
 		return false
 	}
 
@@ -37,7 +37,7 @@ func IsPkgInstalled(pkg_name string) bool {
 	command := fmt.Sprintf("pacman -Q %s", pkg_name)
 	out, err := cmds.ExecCommand(command, false, true)
 	if err != nil {
-		slog.Warn(pkg_name + " package not installed")
+		// slog.Warn(pkg_name + " package not installed")
 		return false
 	}
 
@@ -46,15 +46,14 @@ func IsPkgInstalled(pkg_name string) bool {
 
 // Installs linux packages for arch using pacman.
 // It reads the package names from a file
-func InstallPkgsFromFile(path string) {
+func InstallPkgsFromFile(path string) error {
 	if !fldir.IsPathExist(path) {
-		slog.Warn("Dependency list file not found.")
-		return
+		return errors.New("dependency list file not found.")
 	}
 
 	content, err := fldir.ReadFileAsString(path)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	var packages strings.Builder
@@ -65,15 +64,15 @@ func InstallPkgsFromFile(path string) {
 	}
 
 	if packages.Len() == 0 {
-		slog.Info("No new package(s) name found in the file.")
-		return
+		// slog.Info("No new package(s) name found in the file.")
+		return nil
 	}
 
-	PkgInstall(packages.String())
+	return PkgInstall(packages.String())
 }
 
 // installs missing dependency
-func Dependency_check() {
+func Dependency_check() error {
 	var packages strings.Builder
 	for pkg := range strings.SplitSeq(DEPENDENCIES, " ") {
 		if !IsPkgInstalled(pkg) {
@@ -82,9 +81,9 @@ func Dependency_check() {
 	}
 
 	if packages.Len() == 0 {
-		slog.Info("All dependencies are installed.")
-		return
+		// slog.Info("All dependencies are installed.")
+		return nil
 	}
 
-	PkgInstall(packages.String())
+	return PkgInstall(packages.String())
 }

@@ -2,7 +2,6 @@ package themer
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -11,6 +10,7 @@ import (
 	"github.com/wizarki972/myone/internal/common"
 	"github.com/wizarki972/myone/internal/modules/display"
 	"github.com/wizarki972/myone/internal/utils/fldir"
+	"github.com/wizarki972/myone/internal/utils/logger"
 )
 
 // generates dynamic/placeholder values for dynamic config files
@@ -32,19 +32,19 @@ func (t *Themer) placeThemeDependentFiles() {
 	info, err := os.Stat(td_path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			slog.Info("No theme dependent configs are found.")
+			t.logg_book.EnterLogAndPrint("No theme dependent configs are found.", logger.LogTypes.Error, err)
 			return
 		}
 		panic(err)
 	}
 	if !info.IsDir() {
-		slog.Info("Instead of theme dependent config files directory, found a file. So Skipping...")
+		t.logg_book.EnterLogAndPrint("Instead of theme dependent config files directory, found a file. Skipping it.", logger.LogTypes.Warning, nil)
 		return
 	}
 
 	// place files logic
 	if err := t.placeFilesLogic(td_path, "", true); err != nil {
-		slog.Warn(err.Error())
+		t.logg_book.EnterLogAndPrint("An error occurred while placing theme dependent files. error => "+err.Error(), logger.LogTypes.Warning, err)
 	}
 
 }
@@ -52,12 +52,12 @@ func (t *Themer) placeThemeDependentFiles() {
 func (t *Themer) placeCommonFiles() {
 	common_dir := filepath.Join(t.themesDir, "common")
 	if !fldir.IsPathExist(common_dir) {
-		slog.Info("Theme not found, trying to update themes...")
+		t.logg_book.EnterLogAndPrint("Theme not found, trying to update themes...", logger.LogTypes.Info, nil)
 		t.Download()
 	}
 
 	if err := t.placeFilesLogic(common_dir, "", false); err != nil {
-		panic(err)
+		t.logg_book.EnterLogAndPrint("An error occurred while placing common files. error => "+err.Error(), logger.LogTypes.Warning, err)
 	}
 
 	t.set_common_state(true)
@@ -66,7 +66,7 @@ func (t *Themer) placeCommonFiles() {
 func (t *Themer) placeFilesLogic(path, suffix string, force_fill bool) error {
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		panic(err)
+		t.logg_book.EnterLogAndPrint("Cannot read entries from directory - "+path, logger.LogTypes.Error, err)
 	}
 
 	if len(entries) == 0 {
@@ -94,7 +94,7 @@ func (t *Themer) placeFilesLogic(path, suffix string, force_fill bool) error {
 func (t *Themer) fill(current_path, save_path string) {
 	file, err := fldir.ReadFileAsString(current_path)
 	if err != nil {
-		panic(err)
+		t.logg_book.EnterLogAndPrint("Cannot read a file - "+current_path, logger.LogTypes.Error, err)
 	}
 
 	for old, new := range t.themePlaceholderValues {

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 	"github.com/wizarki972/myone/internal/common"
 	"github.com/wizarki972/myone/internal/utils/cmds"
 	"github.com/wizarki972/myone/internal/utils/fldir"
+	"github.com/wizarki972/myone/internal/utils/logger"
 )
 
 // EXPLORE FOR APPENDING STRINGS IN LOOP - WriteIndex
@@ -30,8 +30,9 @@ type index struct {
 }
 
 // generates Wall struct
-func NewWall() *Wall {
+func NewWall(logg_book *logger.LogBook) *Wall {
 	return &Wall{
+		logg_book:          logg_book,
 		wallDir:            WALLS_DIR,
 		indexPath:          filepath.Join(WALLS_DIR, "index.txt"),
 		local_indices:      make(map[string]*index),
@@ -42,6 +43,7 @@ func NewWall() *Wall {
 }
 
 type Wall struct {
+	logg_book *logger.LogBook
 	wallDir   string
 	indexPath string
 
@@ -61,14 +63,14 @@ func (w *Wall) RefreshLocalIndices() {
 	if !fldir.IsPathExist(local_index_path) {
 		fldir.CreateDirectory(w.wallDir)
 		if _, err := os.Create(local_index_path); err != nil {
-			panic(err)
+			w.logg_book.EnterLogAndPrint("Failed to create local index path.", logger.LogTypes.Error, err)
 		}
 		return
 	}
 
 	indices, err := fldir.ReadFileAsString(local_index_path)
 	if err != nil {
-		panic(err)
+		w.logg_book.EnterLogAndPrint("Failed to read local index path.", logger.LogTypes.Error, err)
 	}
 
 	scanner := bufio.NewScanner(strings.NewReader(indices))
@@ -81,7 +83,7 @@ func (w *Wall) RefreshLocalIndices() {
 		parts := strings.Split(line, "=")
 		version, err := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
 		if err != nil {
-			panic(err)
+			w.logg_book.EnterLogAndPrint("Failed to parse float from string.", logger.LogTypes.Error, err)
 		}
 		w.local_indices[strings.ToLower(strings.TrimSpace(parts[1]))] = &index{
 			Version: version,
@@ -110,7 +112,7 @@ func (w *Wall) RefreshRepoIndices() {
 		parts := strings.Split(line, " = ")
 		version, err := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
 		if err != nil {
-			panic(err)
+			w.logg_book.EnterLogAndPrint("Failed to parse float from string.", logger.LogTypes.Error, err)
 		}
 		w.repo_indices[strings.ToLower(strings.TrimSpace(parts[1]))] = &index{
 			Version: version,
@@ -149,11 +151,11 @@ func (w *Wall) Remove(pack_name string) {
 	pack_name_lc := strings.ToLower(pack_name)
 	pack, ok := w.local_indices[pack_name_lc]
 	if !ok {
-		panic(errors.New("pack not found"))
+		w.logg_book.EnterLogAndPrint("Wallpaper package not found to remove.", logger.LogTypes.Error, errors.New("pack not found"))
 	}
 
 	if err := os.RemoveAll(filepath.Join(w.wallDir, pack.Name)); err != nil {
-		panic(err)
+		w.logg_book.EnterLogAndPrint("Failed to remove wallpaper package.", logger.LogTypes.Error, errors.New("pack not found"))
 	}
 	delete(w.local_indices, pack_name_lc)
 	w.WriteIndex()
@@ -168,8 +170,7 @@ func (w *Wall) Install(pack_name string) {
 	// Pack's existence
 	pack, ok := w.repo_indices[pack_name_lc]
 	if !ok {
-		slog.Error(fmt.Sprintf("%s pack not available", pack_name))
-		os.Exit(1)
+		w.logg_book.EnterLogAndPrint("Wallpaper package not found in repo.", logger.LogTypes.Error, errors.New("pack not found"))
 	}
 
 	// DOWNLOADING WALL PACK
@@ -177,10 +178,10 @@ func (w *Wall) Install(pack_name string) {
 	fldir.DownloadURL(ZIPS_DIR_URL+w.repo_indices[pack_name_lc].ZipName, cache_path, true)
 
 	// UNZIPPING PACK
-	fmt.Println("EXTRACTING WALLPAPERS...")
+	w.logg_book.EnterLogAndPrint("Extracting Wallpaper pack...", logger.LogTypes.Info, nil)
 	destination := filepath.Join(w.wallDir, pack.Name)
 	if err := os.RemoveAll(destination); err != nil {
-		panic(err)
+		w.logg_book.EnterLogAndPrint("Failed to remove old wallpaper package of "+pack.Name+".", logger.LogTypes.Error, errors.New("pack not found"))
 	}
 	fldir.CreateDirectory(destination)
 	fldir.Unzip(cache_path, destination)
@@ -190,11 +191,12 @@ func (w *Wall) Install(pack_name string) {
 	w.WriteIndex()
 
 	// CLEANING UP
+	w.logg_book.EnterLogAndPrint("Clearing cache...", logger.LogTypes.Info, nil)
 	if err := os.RemoveAll(filepath.Dir(cache_path)); err != nil {
-		fmt.Println("ERROR: Failed to clean up cache")
+		w.logg_book.EnterLogAndPrint("Failed to clean up cache.", logger.LogTypes.Warning, nil)
 	}
 
-	fmt.Printf("INSTALLED %s Wallpaper pack", pack.Name)
+	w.logg_book.EnterLogAndPrint("Installed "+pack.Name+" wallpack.", logger.LogTypes.Info, nil)
 }
 
 // writes the index of locally installed wall packs
@@ -214,16 +216,22 @@ func (w *Wall) ShowWallpaperChangeMenu() {
 	home := fldir.GetHomeDir()
 
 	// PACK MENU
-	rofi_input := rofiWallMenuBuilder(w.wallDir, "dir")
+	rofi_input, err := w.rofiWallMenuBuilder(w.wallDir, "dir")
+	if err != nil {
+		w.logg_book.EnterLogAndPrint("Error while building rofi menu for wallpaper packs.", logger.LogTypes.Error, err)
+	}
 	command := fmt.Sprintf("printf '%s' | rofi -dmenu -theme %s/.config/rofi/clipboard.rasi", rofi_input, home)
 	selected_pack, err := cmds.ExecCommand(command, false, true)
 	if err != nil {
-		panic(err)
+		w.logg_book.EnterLogAndPrint("Failed to execute command - "+command, logger.LogTypes.Error, err)
 	}
 
 	// WALLS MENU
 	pack_dir := filepath.Join(w.wallDir, strings.TrimSpace(string(selected_pack)))
-	rofi_input = rofiWallMenuBuilder(pack_dir, "")
+	rofi_input, err = w.rofiWallMenuBuilder(pack_dir, "")
+	if err != nil {
+		w.logg_book.EnterLogAndPrint("Error while building rofi menu for wallpapers.", logger.LogTypes.Error, err)
+	}
 	cmd := exec.Command(
 		"rofi",
 		"-dmenu",
@@ -235,7 +243,7 @@ func (w *Wall) ShowWallpaperChangeMenu() {
 	cmd.Stdin = strings.NewReader(rofi_input)
 	selection, err := cmd.Output()
 	if err != nil {
-		panic(err)
+		w.logg_book.EnterLogAndPrint("Failed to execute rofi wallpaper menu command.", logger.LogTypes.Error, err)
 	}
 
 	// SETTING WALL
@@ -243,21 +251,21 @@ func (w *Wall) ShowWallpaperChangeMenu() {
 	fldir.CopyFile(filepath.Join(pack_dir, strings.TrimSpace(string(selection))), current_wall_path)
 	command = fmt.Sprintf("awww img %s --transition-type fade --transition-duration 0.5", current_wall_path)
 	if _, err = cmds.ExecCommand(command, false, false); err != nil {
-		panic(err)
+		w.logg_book.EnterLogAndPrint("Failed to execute command - "+command, logger.LogTypes.Error, err)
 	}
 }
 
 // reads the walls directory and creates a list for rofi to display
-func rofiWallMenuBuilder(dir_path, mode string) string {
+func (w *Wall) rofiWallMenuBuilder(dir_path, mode string) (string, error) {
 	entries, err := os.ReadDir(dir_path)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	if len(entries) == 0 {
 		command := "notify-send 'No Wallpapers' 'Install a wallpaper package.\nRun `myone wallpapers --list-repo` command to see available packages.'"
 		cmds.ExecCommand(command, false, false)
-		panic(errors.New("No wallpaper package is installed"))
+		return "", errors.New("No wallpaper package is installed")
 	}
 
 	var rofi_input strings.Builder
@@ -276,7 +284,7 @@ func rofiWallMenuBuilder(dir_path, mode string) string {
 		}
 	}
 	if rofi_input.Len() == 0 {
-		panic(errors.New("no wallpapers found, install a wallpack"))
+		w.logg_book.Log("No wallpapers found in the directory, install a wallpack.", logger.LogTypes.Error, errors.New("no wallpapers found in the directory, install a wallpack"))
 	}
-	return rofi_input.String()
+	return rofi_input.String(), nil
 }

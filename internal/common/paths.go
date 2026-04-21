@@ -1,8 +1,9 @@
 package common
 
-const CONFIG_DIR = ".config/myone"
+const CONFIG_PATH = ".config/myone/config.toml"
 const CACHE_DIR = ".cache/myone"
 const BASE_DIR = ".local/share/myone"
+const LOGS_DIR = ".local/state/myone/logs"
 
 const SCRIPTS_DIR = BASE_DIR + "/scripts" // do I really needs this const?! && do I need to move the scripts folder
 

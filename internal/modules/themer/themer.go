@@ -3,15 +3,15 @@ package themer
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/wizarki972/myone/internal/common"
-	"github.com/wizarki972/myone/internal/modules/bootstrap"
 	"github.com/wizarki972/myone/internal/utils/fldir"
+	"github.com/wizarki972/myone/internal/utils/logger"
+	"github.com/wizarki972/myone/internal/utils/pkg"
 )
 
 // Maybe make choosing and installing themes - in future
@@ -20,10 +20,11 @@ const THEMES_ZIP_URL = "https://raw.githubusercontent.com/wizarki972/mythemes/ma
 const VERSION_URL = "https://raw.githubusercontent.com/wizarki972/mythemes/main/VERSION"
 
 // Themer struct generator
-func NewThemer(theme_name string) *Themer {
+func NewThemer(theme_name string, logg_book *logger.LogBook) *Themer {
 	home := fldir.GetHomeDir()
 
 	var t = &Themer{
+		logg_book: logg_book,
 		homeDir:   home,
 		themesDir: filepath.Join(home, common.THEMES_DIR),
 		cacheDir:  filepath.Join(home, common.CACHE_DIR, "themes"),
@@ -48,13 +49,12 @@ func NewThemer(theme_name string) *Themer {
 		var err error
 		t.ThemeName, err = fldir.ReadFileAsString(t.currentThemeNamePath)
 		if err != nil {
-			// Change the error to something like `cannot get current theme`
-			panic(err)
+			t.logg_book.EnterLogAndPrint("Cannot get current theme name from the path - "+t.currentThemeNamePath, logger.LogTypes.Error, err)
 		}
 
 		// second check for errors
 		if len(t.ThemeName) == 0 {
-			panic(errors.New("cannot get currently applied theme"))
+			t.logg_book.EnterLogAndPrint("Theme name from the path - "+t.currentThemeNamePath+" is empty.", logger.LogTypes.Error, err)
 		}
 
 		return t
@@ -66,6 +66,7 @@ func NewThemer(theme_name string) *Themer {
 }
 
 type Themer struct {
+	logg_book *logger.LogBook
 	ThemeName string
 
 	homeDir   string
@@ -87,17 +88,17 @@ func (t *Themer) Update() {
 	verStr, err := fldir.ReadFileAsString(filepath.Join(t.themesDir, "VERSION"))
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Println("No themes found. Downloading themes...")
+			t.logg_book.EnterLogAndPrint("No themes found. Downloading themes...", logger.LogTypes.Info, nil)
 			t.Download()
 			return
 		}
-		panic(err)
+		t.logg_book.EnterLogAndPrint("Error while reading installed themes version from path - "+t.themesDir+"/VERSION", logger.LogTypes.Error, err)
 	}
-	local_v, local_sv = version_parser(verStr)
+	local_v, local_sv = t.version_parser(verStr)
 
 	// repo version
 	verStr = fldir.ReadTextFileFromURL(VERSION_URL, false, "")
-	repo_v, repo_sv = version_parser(verStr)
+	repo_v, repo_sv = t.version_parser(verStr)
 
 	// update starts
 	if (local_v < repo_v) || (local_v == repo_v && local_sv < repo_sv) {
@@ -105,7 +106,7 @@ func (t *Themer) Update() {
 		t.Install()
 		return
 	} else {
-		fmt.Println("Themes are already up-to-date.")
+		t.logg_book.EnterLogAndPrint("Themes are already up-to-date.", logger.LogTypes.Info, nil)
 	}
 }
 
@@ -120,16 +121,16 @@ func (t *Themer) Download() {
 
 	// REMOVING CURRENTLY INSTALLED VERSION
 	if err := os.RemoveAll(t.themesDir); err != nil {
-		slog.Error("Failed to remove themes ==> " + err.Error())
+		t.logg_book.EnterLogAndPrint("Failed to remove old themes.", logger.LogTypes.Error, err)
 	}
 	fldir.CreateDirectory(t.themesDir)
 
 	// Extracting downloaded file
 	fldir.Unzip(cache_path, t.themesDir)
 
-	slog.Info("Cleaning Up...")
+	t.logg_book.EnterLogAndPrint("Clearing cache...", logger.LogTypes.Info, nil)
 	if err := os.RemoveAll(t.cacheDir); err != nil {
-		slog.Error("Failed to remove cache")
+		t.logg_book.EnterLogAndPrint("Failed to clear cache.", logger.LogTypes.Error, nil)
 	}
 }
 
@@ -138,16 +139,16 @@ func (t *Themer) Install() {
 	t.generatePlaceholderValues()
 	// Dir checks
 	if !fldir.IsPathExist(t.themesDir) {
-		slog.Info("Theme not found, trying to update themes...")
+		t.logg_book.EnterLogAndPrint("Theme not found, trying to update themes...", logger.LogTypes.Info, nil)
 		t.Download()
 	}
 
 	entries, err := os.ReadDir(t.themesDir)
 	if err != nil {
-		panic(err)
+		t.logg_book.EnterLogAndPrint("Cannot get theme entries from - "+t.themesDir, logger.LogTypes.Error, err)
 	}
 	if len(entries) == 0 {
-		slog.Info("Nothing found in the themes directory. Trying to populate it...")
+		t.logg_book.EnterLogAndPrint("Nothing found in the themes directory. Trying to populate it...", logger.LogTypes.Info, nil)
 		t.Download()
 	}
 
@@ -163,8 +164,10 @@ func (t *Themer) Install() {
 	// dependency check
 	dep_lst_path := filepath.Join(t.themesDir, "deps.lst")
 	if fldir.IsPathExist(dep_lst_path) {
-		fmt.Println("Dependency check...")
-		bootstrap.InstallPkgsFromFile(dep_lst_path)
+		t.logg_book.EnterLogAndPrint("Performing dependency check for the themes...", logger.LogTypes.Info, nil)
+		if err := pkg.InstallPkgsFromFile(dep_lst_path); err != nil {
+			t.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+		}
 	}
 
 	// writing current theme
@@ -190,17 +193,17 @@ func (t *Themer) apply_colors() {
 	// Checks
 	info, err := os.Stat(colors_dir)
 	if err != nil {
-		panic(err)
+		t.logg_book.EnterLogAndPrint("Cannot access colors directory or not found. ("+colors_dir+").", logger.LogTypes.Error, err)
 	}
 	if !info.IsDir() {
-		panic(errors.New("colors directory not found for this theme"))
+		t.logg_book.EnterLogAndPrint("Colors directory not found for this theme - "+colors_dir, logger.LogTypes.Error, errors.New("colors directory not found for this theme"))
 	}
 
 	// loading schema
 	schema_path := filepath.Join(t.themesDir, "colors", "schema")
 	content, err := fldir.ReadFileAsString(schema_path)
 	if err != nil {
-		panic(err)
+		t.logg_book.EnterLogAndPrint("Error while reading schema - "+schema_path, logger.LogTypes.Error, err)
 	}
 	var schema map[string]string = make(map[string]string)
 	for line := range strings.SplitSeq(content, "\n") {
@@ -211,17 +214,17 @@ func (t *Themer) apply_colors() {
 	// logic
 	entries, err := os.ReadDir(colors_dir)
 	if err != nil {
-		panic(err)
+		t.logg_book.EnterLogAndPrint("Error while reading colors directory - "+colors_dir, logger.LogTypes.Error, err)
 	}
 	for _, entry := range entries {
 		// entry check
 		if entry.IsDir() {
-			slog.Warn(fmt.Sprintf("Folder %s is skipped", filepath.Join(t.themesDir, entry.Name())))
+			t.logg_book.EnterLogAndPrint(fmt.Sprintf("Folder %s is skipped", filepath.Join(t.themesDir, entry.Name())), logger.LogTypes.Warning, nil)
 		}
 
 		target_path, ok := schema[entry.Name()]
 		if !ok {
-			slog.Warn("unknown colors file found. Skipping")
+			t.logg_book.EnterLogAndPrint("unknown colors file found. Skipping - "+entry.Name(), logger.LogTypes.Warning, nil)
 			continue
 		}
 
@@ -235,7 +238,7 @@ func (t *Themer) common_state() bool {
 	if fldir.IsPathExist(t.commonStatePath) {
 		data, err := fldir.ReadFileAsString(t.commonStatePath)
 		if err != nil {
-			panic(err)
+			t.logg_book.EnterLogAndPrint("Error while reading common state - "+t.commonStatePath, logger.LogTypes.Error, err)
 		}
 		if data == "1" {
 			return true
@@ -267,19 +270,20 @@ func (t *Themer) get_rofi_image() string {
 		}
 	}
 
-	panic(errors.New("rofi theme image pair not found"))
+	t.logg_book.EnterLogAndPrint("Rofi theme image pair not found.", logger.LogTypes.Error, errors.New("rofi theme image pair not found"))
+	return ""
 }
 
 // version string parser
-func version_parser(version string) (float64, int) {
+func (t *Themer) version_parser(version string) (float64, int) {
 	version_parts := strings.Split(version, "-")
 	version_fl, err := strconv.ParseFloat(strings.SplitN(version_parts[0], ".", 2)[1], 64)
 	if err != nil {
-		panic(err)
+		t.logg_book.Log("Error while parsing version", logger.LogTypes.Error, err)
 	}
 	sub_version, err := strconv.Atoi(version_parts[1])
 	if err != nil {
-		panic(err)
+		t.logg_book.Log("Error while parsing version", logger.LogTypes.Error, err)
 	}
 	return version_fl, sub_version
 }

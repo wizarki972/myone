@@ -8,6 +8,7 @@ import (
 	"github.com/wizarki972/myone/internal/modules/display"
 	"github.com/wizarki972/myone/internal/utils/cmds"
 	"github.com/wizarki972/myone/internal/utils/fldir"
+	"github.com/wizarki972/myone/internal/utils/logger"
 )
 
 // values to structure wlogout menu
@@ -51,7 +52,7 @@ func GetLogoutValues(layout int) (map[string]string, error) {
 }
 
 // generates wlogout css file and shows the menu
-func Logout(layout int) {
+func Logout(layout int, logg_book *logger.LogBook) {
 	var logoutValues map[string]string
 	var cols int
 	var err error
@@ -67,11 +68,11 @@ func Logout(layout int) {
 
 	stylesContent, err := fldir.ReadFileAsString(stylesPath)
 	if err != nil {
-		panic(err)
+		logg_book.EnterLogAndPrint("Error while reading this "+stylesPath+" file as string.", logger.LogTypes.Error, err)
 	}
 
 	if logoutValues, err = GetLogoutValues(layout); err != nil {
-		panic(err)
+		logg_book.EnterLogAndPrint("Error while getting values for logout menu.", logger.LogTypes.Error, err)
 	}
 
 	for old, new := range logoutValues {

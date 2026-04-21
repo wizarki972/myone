@@ -9,6 +9,7 @@ import (
 
 	"github.com/wizarki972/myone/internal/utils/cmds"
 	"github.com/wizarki972/myone/internal/utils/fldir"
+	"github.com/wizarki972/myone/internal/utils/logger"
 )
 
 var BatteryStates = struct {
@@ -28,10 +29,13 @@ var BatteryThreshold = 20
 type Battery struct {
 	BatteryPath      string
 	IsBatteryPresent bool
+	logg_book        *logger.LogBook
 }
 
-func NewBatteryMonitor() *Battery {
-	out := &Battery{}
+func NewBatteryMonitor(logg_book *logger.LogBook) *Battery {
+	out := &Battery{
+		logg_book: logg_book,
+	}
 	out.BatteryCheck()
 	return out
 }
@@ -39,7 +43,7 @@ func NewBatteryMonitor() *Battery {
 func (b *Battery) BatteryCheck() {
 	bats, err := filepath.Glob("/sys/class/power_supply/BAT*")
 	if err != nil {
-		panic(err)
+		b.logg_book.EnterLogAndPrint("Error in getting entries from /sys/class/power_supply/ that has BAT as prefix.", logger.LogTypes.Error, err)
 	}
 
 	for _, bat := range bats {
@@ -53,7 +57,7 @@ func (b *Battery) BatteryCheck() {
 func (b *Battery) RemainingBatteryPercent() int {
 	level, err := strconv.Atoi(strings.TrimSpace(fldir.ReadFileAsStringNoError(filepath.Join(b.BatteryPath, "capacity"))))
 	if err != nil {
-		panic(err)
+		b.logg_book.EnterLogAndPrint("Error while converting battery value obtaned into integer format.", logger.LogTypes.Error, err)
 	}
 	return level
 }
