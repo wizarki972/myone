@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/wizarki972/myone/internal/common"
 	"github.com/wizarki972/myone/internal/utils/cmds"
 	"github.com/wizarki972/myone/internal/utils/fldir"
 )
@@ -16,7 +15,7 @@ const DEPENDENCIES = "go hyprland wireplumber blueman waybar rofi brightnessctl 
 func PkgInstall(pkg_name string) error {
 	command := fmt.Sprintf("sudo pacman -Sy --needed --noconfirm %s", pkg_name)
 	if !cmds.IsInteractiveShell() {
-		cmds.ExecCommandInInInteractiveShell(fmt.Sprintf("%s\nFollowing dependencies are needed, \n\t%s\nDo you want to install it?", common.MYONE_ASCII, pkg_name), "MyOne-Dependency-Install", command, true, false)
+		cmds.ExecCommandInInInteractiveShell(fmt.Sprintf("MYONE - DEPENDENCY NOT INSTALLED\nFollowing dependencie(s) are needed, \n\t%s\nDo you want to install it?", pkg_name), "MyOne-Dependency-Install", command, true, false)
 	} else if _, err := cmds.ExecCommand(command, true, false); err != nil {
 		return err
 	}
