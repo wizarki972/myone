@@ -73,6 +73,8 @@ func SelfUpdate(logg_book *logger.LogBook) {
 				// cleaning up cache
 				os.RemoveAll(cache_dir)
 
+			} else {
+				os.Exit(1)
 			}
 		}
 	} else {
