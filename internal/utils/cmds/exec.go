@@ -73,12 +73,13 @@ func ExecCommandInInInteractiveShell(msg, title, command string, ask_user_permis
 	kittyConfig := filepath.Join(home, ".config/kitty/kitty_popup.conf")
 	var cmd *exec.Cmd
 	if ask_user_permission {
-		cmd = exec.Command("bash", "-c", fmt.Sprintf("kitty -c %s --title %s -e bash -c \"printf '%s [y/N]: ' && read ans && [[ '$ans' =~ ^[Yy]$ ]] && %s && printf 'Press any key to exit...' && read\"", kittyConfig, title, msg, command))
+		script := fmt.Sprintf(`printf '%s [y/N]: '; read ans; if [[ "$ans" =~ ^[yY]$ ]]; then %s; fi; printf '\nPress any key to exit...'; read`, msg, command)
+		cmd = exec.Command("kitty", "--hold", "-c", kittyConfig, "--title", title, "-e", "bash", "-c", script)
 	} else {
-		cmd = exec.Command("bash", "-c", fmt.Sprintf("kitty -c %s --title %s -e bash -c \"%s && printf 'Press any key to exit...' && read\"", kittyConfig, title, command))
+		script := fmt.Sprintf("%s && printf 'Press any key to exit...' && read", command)
+		cmd = exec.Command("kitty", "-c", kittyConfig, "--title", title, "-e", "bash", "-c", script)
 	}
 
-	fmt.Println("123")
 	if detach {
 		cmd.SysProcAttr = &syscall.SysProcAttr{
 			Setsid: true,
