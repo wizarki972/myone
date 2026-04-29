@@ -100,7 +100,10 @@ func (w *Wall) RefreshRepoIndices() {
 		return
 	}
 
-	indices := fldir.ReadTextFileFromURL(INDEX_URL, false, "")
+	indices, err := fldir.ReadTextFileFromURL(INDEX_URL, false, "")
+	if err != nil {
+		w.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+	}
 
 	scanner := bufio.NewScanner(strings.NewReader(indices))
 	for scanner.Scan() {
@@ -175,7 +178,9 @@ func (w *Wall) Install(pack_name string) {
 
 	// DOWNLOADING WALL PACK
 	cache_path := filepath.Join(fldir.GetHomeDir(), common.CACHE_DIR, "walls", pack.ZipName)
-	fldir.DownloadURL(ZIPS_DIR_URL+w.repo_indices[pack_name_lc].ZipName, cache_path, true)
+	if err := fldir.DownloadURL(ZIPS_DIR_URL+w.repo_indices[pack_name_lc].ZipName, cache_path, true); err != nil {
+		w.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+	}
 
 	// UNZIPPING PACK
 	w.logg_book.EnterLogAndPrint("Extracting Wallpaper pack...", logger.LogTypes.Info, nil)
@@ -184,7 +189,9 @@ func (w *Wall) Install(pack_name string) {
 		w.logg_book.EnterLogAndPrint("Failed to remove old wallpaper package of "+pack.Name+".", logger.LogTypes.Error, errors.New("pack not found"))
 	}
 	fldir.CreateDirectory(destination)
-	fldir.Unzip(cache_path, destination)
+	if err := fldir.Unzip(cache_path, destination); err != nil {
+		w.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+	}
 
 	// ADDING INDEX
 	w.local_indices[pack_name_lc] = w.repo_indices[pack_name_lc]

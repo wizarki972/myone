@@ -79,11 +79,15 @@ func (t *Themer) placeFilesLogic(path, suffix string, force_fill bool) error {
 		if entry.IsDir() {
 			t.placeFilesLogic(entry_path, filepath.Join(suffix, entry.Name()), force_fill)
 		} else {
-			fldir.CreateDirectory(filepath.Join(t.homeDir, suffix))
+			if err := fldir.CreateDirectory(filepath.Join(t.homeDir, suffix)); err != nil {
+				t.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+			}
 			if force_fill || strings.HasPrefix(entry.Name(), "$") {
 				t.fill(entry_path, filepath.Join(t.homeDir, suffix, strings.TrimPrefix(entry.Name(), "$")))
 			} else {
-				fldir.CopyFile(entry_path, filepath.Join(t.homeDir, suffix, entry.Name()))
+				if err := fldir.CopyFile(entry_path, filepath.Join(t.homeDir, suffix, entry.Name())); err != nil {
+					t.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+				}
 			}
 		}
 	}
@@ -100,5 +104,7 @@ func (t *Themer) fill(current_path, save_path string) {
 	for old, new := range t.themePlaceholderValues {
 		file = strings.ReplaceAll(file, old, new)
 	}
-	fldir.WriteStringToFile(file, save_path)
+	if err := fldir.WriteStringToFile(file, save_path); err != nil {
+		t.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+	}
 }

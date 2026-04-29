@@ -7,7 +7,10 @@ import (
 
 // saves default config
 func SaveConfig() {
-	file := fldir.CreateFile(DefaultConfig.general.configPath)
+	file, err := fldir.CreateFile(DefaultConfig.general.configPath)
+	if err != nil {
+		Log(err.Error(), "ERROR", err)
+	}
 	defer file.Close()
 
 	if err := toml.NewEncoder(file).Encode(DefaultConfig); err != nil {

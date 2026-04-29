@@ -97,7 +97,10 @@ func (t *Themer) Update() {
 	local_v, local_sv = t.version_parser(verStr)
 
 	// repo version
-	verStr = fldir.ReadTextFileFromURL(VERSION_URL, false, "")
+	verStr, err = fldir.ReadTextFileFromURL(VERSION_URL, false, "")
+	if err != nil {
+		t.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+	}
 	repo_v, repo_sv = t.version_parser(verStr)
 
 	// update starts
@@ -114,16 +117,22 @@ func (t *Themer) Update() {
 func (t *Themer) Download() {
 	// CACHE PATH CHECK
 	cache_path := filepath.Join(t.cacheDir, "themes.zip")
-	fldir.CreateDirectory(t.cacheDir)
+	if err := fldir.CreateDirectory(t.cacheDir); err != nil {
+		t.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+	}
 
 	// DOWNLOADING ZIP
-	fldir.DownloadURL(THEMES_ZIP_URL, cache_path, true)
+	if err := fldir.DownloadURL(THEMES_ZIP_URL, cache_path, true); err != nil {
+		t.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+	}
 
 	// REMOVING CURRENTLY INSTALLED VERSION
 	if err := os.RemoveAll(t.themesDir); err != nil {
 		t.logg_book.EnterLogAndPrint("Failed to remove old themes.", logger.LogTypes.Error, err)
 	}
-	fldir.CreateDirectory(t.themesDir)
+	if err := fldir.CreateDirectory(t.themesDir); err != nil {
+		t.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+	}
 
 	// Extracting downloaded file
 	fldir.Unzip(cache_path, t.themesDir)
@@ -171,7 +180,9 @@ func (t *Themer) Install() {
 	}
 
 	// writing current theme
-	fldir.WriteStringToFile(t.ThemeName, t.currentThemeNamePath)
+	if err := fldir.WriteStringToFile(t.ThemeName, t.currentThemeNamePath); err != nil {
+		t.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+	}
 }
 
 // applies themes
@@ -182,7 +193,9 @@ func (t *Themer) Apply_Theme() {
 	}
 	t.placeThemeDependentFiles()
 	t.apply_colors()
-	fldir.WriteStringToFile(t.ThemeName, t.currentThemeNamePath)
+	if err := fldir.WriteStringToFile(t.ThemeName, t.currentThemeNamePath); err != nil {
+		t.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+	}
 	t.refreshDesktop()
 }
 
@@ -229,7 +242,9 @@ func (t *Themer) apply_colors() {
 		}
 
 		// applying
-		fldir.CopyFile(filepath.Join(colors_dir, entry.Name()), target_path)
+		if err := fldir.CopyFile(filepath.Join(colors_dir, entry.Name()), target_path); err != nil {
+			t.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+		}
 	}
 }
 
@@ -254,7 +269,9 @@ func (t *Themer) set_common_state(state bool) {
 	} else {
 		content = "0"
 	}
-	fldir.WriteStringToFile(content, t.commonStatePath)
+	if err := fldir.WriteStringToFile(content, t.commonStatePath); err != nil {
+		t.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+	}
 }
 
 // getting rofi launcher image path based on the theme

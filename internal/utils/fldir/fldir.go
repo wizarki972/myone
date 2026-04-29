@@ -22,17 +22,17 @@ func IsPathExist(path string) bool {
 }
 
 // FILES
-func CreateFile(path string) *os.File {
+func CreateFile(path string) (*os.File, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	file, err := os.Create(path)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return file
+	return file, nil
 }
 
 func ReadFileAsString(path string) (string, error) {
@@ -51,71 +51,77 @@ func ReadFileAsStringNoError(path string) string {
 	return strings.TrimSpace(string(data))
 }
 
-func WriteStringToFile(content, path string) {
-	CreateDirectory(filepath.Dir(path))
+func WriteStringToFile(content, path string) error {
+	if err := CreateDirectory(filepath.Dir(path)); err != nil {
+		return err
+	}
 	// 0664 - 6 (r+w), 4(r)
 	if err := os.WriteFile(path, []byte(content), 0664); err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
-func CopyFile(source_path, destination_path string) {
+func CopyFile(source_path, destination_path string) error {
 	info, err := os.Stat(source_path)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	source, err := os.Open(source_path)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer source.Close()
 
-	CreateDirectory(filepath.Dir(destination_path))
+	if err := CreateDirectory(filepath.Dir(destination_path)); err != nil {
+		return err
+	}
 	destination, err := os.OpenFile(destination_path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, info.Mode())
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer destination.Close()
 
 	if _, err = io.Copy(destination, source); err != nil {
-		panic(err)
+		return err
 	}
 
 	if err = os.Chmod(destination_path, info.Mode()); err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 // DIRS
 
-func CreateDirectory(path string) {
+func CreateDirectory(path string) error {
 	info, err := os.Stat(path)
 	if err == nil {
 		if info.IsDir() {
-			return
+			return nil
 		}
 
-		slog.Error("A file already exists in the path : " + path)
-		os.Exit(1)
+		return errors.New("a file already exists in the path : " + path)
 	}
 
 	if !os.IsNotExist(err) {
-		panic(err)
+		return err
 	}
 
 	err = os.MkdirAll(path, 0755)
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 // ARCHIVES
 
-func Unzip(source, destination string) {
+func Unzip(source, destination string) error {
 	zip_file, err := zip.OpenReader(source)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer zip_file.Close()
 
@@ -124,70 +130,71 @@ func Unzip(source, destination string) {
 
 		// Zip slip protection
 		if !strings.HasPrefix(target, filepath.Clean(destination)+string(os.PathSeparator)) {
-			panic(errors.New("illegal path: " + target))
+			return errors.New("illegal path: " + target)
 		}
 
 		if file.FileInfo().IsDir() {
 			if err := os.MkdirAll(target, file.Mode()); err != nil {
-				panic(err)
+				return err
 			}
 			continue
 		}
 
 		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
-			panic(err)
+			return err
 		}
 
 		reader, err := file.Open()
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		out, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, file.Mode())
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		_, err = io.Copy(out, reader)
 		reader.Close()
 		out.Close()
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
+	return nil
 }
 
 // URLs
 
-func ReadTextFileFromURL(URL string, save bool, save_path string) string {
+func ReadTextFileFromURL(URL string, save bool, save_path string) (string, error) {
 	resp, err := http.Get(URL)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		panic(errors.New("http error: " + resp.Status))
+		return "", errors.New("http error: " + resp.Status)
 	}
 
 	if save {
 		out, err := os.OpenFile(save_path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
-			panic(err)
+			return "", err
 		}
 		defer out.Close()
 
 		if _, err = io.Copy(out, resp.Body); err != nil {
-			panic(err)
+			return "", err
 		}
 	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
-	return strings.TrimSpace(string(data))
+	return strings.TrimSpace(string(data)), nil
 }
 
 type progress_writter struct {
@@ -203,7 +210,7 @@ func (pw *progress_writter) Write(b []byte) (int, error) {
 	return n, nil
 }
 
-func DownloadURL(URL, destination string, want_progress bool) {
+func DownloadURL(URL, destination string, want_progress bool) error {
 	resp, err := http.Get(URL)
 	if err != nil {
 		panic(err)
@@ -214,7 +221,9 @@ func DownloadURL(URL, destination string, want_progress bool) {
 		panic(errors.New("http error: " + resp.Status))
 	}
 
-	CreateDirectory(filepath.Dir(destination))
+	if err := CreateDirectory(filepath.Dir(destination)); err != nil {
+		return err
+	}
 	out, err := os.OpenFile(destination, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		panic(err)
@@ -231,10 +240,14 @@ func DownloadURL(URL, destination string, want_progress bool) {
 	} else if _, err := io.Copy(out, resp.Body); err != nil {
 		panic(err)
 	}
+	return nil
 }
 
 // USER
+// Only for these two funcs error is not returned, since it is not a expected behaviour.
+// I AM JUST LAZY TO RETURN ERROR FRO THESE...
 
+// Returns XDG directory of the input...
 func GetXDGDir(name string) string {
 	output, err := cmds.ExecCommand("xdg-user-dir "+name, false, true)
 	if err != nil {
@@ -243,6 +256,7 @@ func GetXDGDir(name string) string {
 	return string(output)
 }
 
+// Returns user's home directroy path
 func GetHomeDir() string {
 	out, err := os.UserHomeDir()
 	if err != nil {
@@ -255,27 +269,28 @@ func GetHomeDir() string {
 
 // Move moves a file or directory from src to dst.
 // Works across filesystems and preserves permissions.
-func Move(src, dst string) {
+func Move(src, dst string) error {
 	// Try fast path (rename)
 	if err := os.Rename(src, dst); err == nil {
-		return
+		return nil
 	}
 
 	info, err := os.Lstat(src)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	slog.Warn("Fast renaming did not work, falling back to moving file by file.")
 	if info.IsDir() {
 		if err := moveDir(src, dst); err != nil {
-			panic(err)
+			return err
 		}
 	}
 
 	if err := moveFile(src, dst, info); err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 func moveFile(src, dst string, info os.FileInfo) error {
