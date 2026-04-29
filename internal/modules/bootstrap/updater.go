@@ -37,7 +37,9 @@ func SelfUpdate(logg_book *logger.LogBook) {
 	// This allows downgrading to last stable in case of bugs by rolling back to older releases in repo.
 	if !ok {
 		if !cmds.IsInteractiveShell() {
-			cmds.ExecCommandInInInteractiveShell("", "MyOne-Update", "myone --update", false, true)
+			if err := cmds.ExecCommandInInInteractiveShell("", "MyOne-Update", "myone --update", false, true); err != nil {
+				logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+			}
 		} else {
 			fmt.Print(common.MYONE_ASCII)
 

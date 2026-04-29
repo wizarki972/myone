@@ -15,7 +15,9 @@ const DEPENDENCIES = "go hyprland wireplumber blueman waybar rofi brightnessctl 
 func PkgInstall(pkg_name string) error {
 	command := fmt.Sprintf("sudo pacman -Sy --needed --noconfirm %s", pkg_name)
 	if !cmds.IsInteractiveShell() {
-		cmds.ExecCommandInInInteractiveShell(fmt.Sprintf("MYONE - DEPENDENCY NOT INSTALLED\nFollowing dependencie(s) are needed, \n\t%s\nDo you want to install it?", pkg_name), "MyOne-Dependency-Install", command, true, false)
+		if err := cmds.ExecCommandInInInteractiveShell(fmt.Sprintf("MYONE - DEPENDENCY NOT INSTALLED\nFollowing dependencie(s) are needed, \n\t%s\nDo you want to install it?", pkg_name), "MyOne-Dependency-Install", command, true, false); err != nil {
+			return err
+		}
 	} else if _, err := cmds.ExecCommand(command, true, false); err != nil {
 		return err
 	}

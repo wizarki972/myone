@@ -2,6 +2,7 @@ package cmds
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -34,7 +35,7 @@ func ExecCommand(command string, feedback, output bool) (string, error) {
 	return buf.String(), nil
 }
 
-func ExecCommandDetached(command string) {
+func ExecCommandDetached(command string) error {
 	cmd := exec.Command("bash", "-c", command)
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
@@ -45,9 +46,9 @@ func ExecCommandDetached(command string) {
 	cmd.Stdout = nil
 
 	if err := cmd.Start(); err != nil {
-		panic(err)
+		return err
 	}
-
+	return nil
 }
 
 func ExecCommandBytes(command string, output bool) ([]byte, error) {
@@ -64,11 +65,10 @@ func ExecCommandBytes(command string, output bool) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func ExecCommandInInInteractiveShell(msg, title, command string, ask_user_permission, detach bool) {
+func ExecCommandInInInteractiveShell(msg, title, command string, ask_user_permission, detach bool) error {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Println("==> [ERROR] Cannot get user home directory.")
-		os.Exit(1)
+		return errors.New("cannot get user home directory")
 	}
 	kittyConfig := filepath.Join(home, ".config/kitty/kitty_popup.conf")
 	var cmd *exec.Cmd
@@ -89,11 +89,12 @@ func ExecCommandInInInteractiveShell(msg, title, command string, ask_user_permis
 		cmd.Stdin = nil
 
 		if err := cmd.Start(); err != nil {
-			panic(err)
+			return err
 		}
 	} else if err := cmd.Run(); err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 func IsInteractiveShell() bool {
