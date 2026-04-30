@@ -9,9 +9,6 @@ import (
 )
 
 var DefaultConfig = Config{
-	general: general{
-		configPath: filepath.Join(fldir.GetHomeDir(), common.CONFIG_PATH),
-	},
 	Logs: Logs{
 		Level:           3,
 		Panic:           false,

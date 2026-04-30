@@ -2,14 +2,10 @@ package config
 
 // Overall Config Struct
 type Config struct {
-	general general `toml:"General"`
-	Logs    Logs    `toml:"Logs"`
+	Logs Logs `toml:"Logs"`
 }
 
 // General Section
-type general struct {
-	configPath string
-}
 
 // Log Section
 type Logs struct {
