@@ -75,7 +75,7 @@ func ExecCommandInInInteractiveShell(msg, title, command string, ask_user_permis
 	var cmd *exec.Cmd
 	if ask_user_permission {
 		script := fmt.Sprintf(`printf '%s [y/N]: '; read ans; if [[ "$ans" =~ ^[yY]$ ]]; then %s; fi; printf '\nPress any key to exit...'; read`, msg, command)
-		cmd = exec.Command("kitty", "--hold", "-c", kittyConfig, "--title", title, "-e", "bash", "-c", script)
+		cmd = exec.Command("kitty", "-c", kittyConfig, "--title", title, "-e", "bash", "-c", script)
 	} else {
 		script := fmt.Sprintf("%s && printf 'Press any key to exit...' && read", command)
 		cmd = exec.Command("kitty", "-c", kittyConfig, "--title", title, "-e", "bash", "-c", script)
