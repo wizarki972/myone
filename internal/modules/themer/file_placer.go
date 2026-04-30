@@ -98,7 +98,7 @@ func (t *Themer) placeFilesLogic(path, suffix string, force_fill bool) error {
 func (t *Themer) fill(current_path, save_path string) {
 	file, err := fldir.ReadFileAsString(current_path)
 	if err != nil {
-		t.logg_book.EnterLogAndPrint("Cannot read a file - "+current_path, logger.LogTypes.Error, err)
+		t.logg_book.EnterLogAndPrint("Cannot read file - "+current_path, logger.LogTypes.Error, err)
 	}
 
 	for old, new := range t.themePlaceholderValues {
