@@ -87,7 +87,7 @@ func (t *Themer) Update() {
 	// local version
 	verStr, err := fldir.ReadFileAsString(filepath.Join(t.themesDir, "VERSION"))
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			t.logg_book.EnterLogAndPrint("No themes found. Downloading themes...", logger.LogTypes.Info, nil)
 			t.Download()
 			return
