@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
@@ -9,19 +10,18 @@ import (
 )
 
 // saves default config
-func SaveDefaultConfig() {
+func SaveDefaultConfig() error {
 	configPath := filepath.Join(fldir.GetHomeDir(), common.CONFIG_PATH)
 	file, err := fldir.CreateFile(configPath)
 	if err != nil {
-		Log(err.Error(), "ERROR", err)
+		return err
 	}
 	defer file.Close()
 
 	if err := toml.NewEncoder(file).Encode(DefaultConfig); err != nil {
-		Log("Failed to save the config file to this location - "+configPath, "ERROR", err)
+		return errors.New("Failed to save the config file to this location - " + configPath + ". Full Error => " + err.Error())
 	}
-
-	Log("Default config is saved here - "+configPath, "INFO", nil)
+	return nil
 }
 
 // reads user if found, else returns default

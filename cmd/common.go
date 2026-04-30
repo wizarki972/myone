@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/wizarki972/myone/internal/config"
 	"github.com/wizarki972/myone/internal/utils/fldir"
 	"github.com/wizarki972/myone/internal/utils/logger"
@@ -11,11 +14,10 @@ func handleLogg() *logger.LogBook {
 	var loggerInstance *logger.LogBook
 	switch {
 	case len(logPath) > 0:
-		if fldir.IsPathExist(logPath) {
-			logger.Log("Provided log path is occupied.", logger.LogTypes.Error, nil)
-		} else {
-			loggerInstance = logger.NewLogBook(logPath, true, true, userConfig)
+		if !strings.HasPrefix(logPath, fldir.GetHomeDir()) {
+			fmt.Println("-> [WARN] The logpath is outside of user's home directory, make sure to have necessary permission for saving the log.")
 		}
+		loggerInstance = logger.NewLogBook(logPath, true, true, userConfig)
 	case saveLog:
 		loggerInstance = logger.NewLogBook("", true, true, userConfig)
 	default:

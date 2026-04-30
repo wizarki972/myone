@@ -124,24 +124,3 @@ func (book *LogBook) Log(log string, logType LogType, err error) {
 		os.Exit(1)
 	}
 }
-
-// common log printing function - only place where this used is in cmd/common.go
-func Log(log string, logType LogType, err error) {
-	userConfig := config.GetConfig()
-	if len(log) == 0 {
-		fmt.Printf("-> [%s] IF YOU ARE SEEING THIS ERROR THAN THAT MEANS AN EMPTY LOG WAS PROVIDED.\n", logType.Type)
-		return
-	}
-
-	if !slices.Contains(logLevels[userConfig.Logs.Level], logType) {
-		return
-	}
-	fmt.Printf("-> %s\n", log)
-
-	if logType == LogTypes.Error {
-		if userConfig.Logs.Panic && err != nil {
-			panic(err)
-		}
-		os.Exit(1)
-	}
-}

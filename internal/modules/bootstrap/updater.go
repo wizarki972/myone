@@ -20,7 +20,7 @@ const DOWNLOAD_URL = "https://github.com/wizarki972/myone/archive/refs/heads/mai
 // NOTE
 // MYONE_INTERNAL environment variable is used to separate a background update check from a command executed by the user
 
-func isLatest() (bool, string, error) {
+func isLatest(logg_book *logger.LogBook) (bool, string, error) {
 	// Getting latest version from repo
 	ver_str, err := fldir.ReadTextFileFromURL(VERSION_URL, false, "")
 	if err != nil {
@@ -28,13 +28,13 @@ func isLatest() (bool, string, error) {
 	}
 	out, err := strconv.ParseFloat(strings.SplitN(ver_str, ".", 2)[1], 64)
 	if err != nil {
-		logger.Log("Failed parse latest version value from repo.", logger.LogTypes.Error, err)
+		logg_book.Log("Failed parse latest version value from repo.", logger.LogTypes.Error, err)
 	}
 	return out == common.GetVersionFloat(), ver_str, nil
 }
 
 func SelfUpdate(logg_book *logger.LogBook) {
-	ok, latest, err := isLatest()
+	ok, latest, err := isLatest(logg_book)
 	if err != nil {
 		logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 	}
