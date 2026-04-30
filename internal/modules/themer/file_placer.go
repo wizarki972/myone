@@ -1,6 +1,7 @@
 package themer
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -32,7 +33,7 @@ func (t *Themer) placeThemeDependentFiles() {
 	// checks
 	info, err := os.Stat(td_path)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			t.logg_book.EnterLogAndPrint("No theme dependent configs are found.", logger.LogTypes.Error, err)
 			return
 		}

@@ -113,7 +113,7 @@ func CreateDirectory(path string) error {
 		return errors.New("a file already exists in the path : " + path)
 	}
 
-	if !os.IsNotExist(err) {
+	if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
 
