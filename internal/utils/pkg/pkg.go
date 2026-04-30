@@ -31,7 +31,6 @@ func IsPkgInstalled(pkg_name string) bool {
 
 	// check
 	if len(pkg_name) == 0 {
-		// slog.Warn("Enter a package name to check package's installation status")
 		return false
 	}
 
@@ -39,7 +38,6 @@ func IsPkgInstalled(pkg_name string) bool {
 	command := fmt.Sprintf("pacman -Q %s", pkg_name)
 	out, err := cmds.ExecCommand(command, false, true)
 	if err != nil {
-		// slog.Warn(pkg_name + " package not installed")
 		return false
 	}
 
@@ -65,7 +63,6 @@ func InstallPkgsFromFile(path string) error {
 	}
 
 	if packages.Len() == 0 {
-		// slog.Info("No new package(s) name found in the file.")
 		return nil
 	}
 
@@ -82,7 +79,6 @@ func Dependency_check() error {
 	}
 
 	if packages.Len() == 0 {
-		// slog.Info("All dependencies are installed.")
 		return nil
 	}
 

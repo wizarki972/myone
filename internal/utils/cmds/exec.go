@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"golang.org/x/term"
@@ -32,7 +33,7 @@ func ExecCommand(command string, feedback, output bool) (string, error) {
 		return "", err
 	}
 
-	return buf.String(), nil
+	return strings.TrimSpace(buf.String()), nil
 }
 
 func ExecCommandDetached(command string) error {

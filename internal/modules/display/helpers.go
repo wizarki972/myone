@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/wizarki972/myone/internal/utils/cmds"
 )
@@ -46,13 +45,13 @@ func ActiveMonitor() (string, error) {
 func swayOSDNotify(backlight_name string) {
 	// maximum brightness
 	out, _ := cmds.ExecCommand("brightnessctl -d "+backlight_name+" m", false, true)
-	maxi, err := strconv.ParseFloat(strings.TrimSpace(out), 64)
+	maxi, err := strconv.ParseFloat(out, 64)
 	if err != nil {
 		panic(err)
 	}
 	// current brightness
 	out, _ = cmds.ExecCommand("brightnessctl -d "+backlight_name+" g", false, true)
-	curr, err := strconv.ParseFloat(strings.TrimSpace(out), 64)
+	curr, err := strconv.ParseFloat(out, 64)
 	if err != nil {
 		panic(err)
 	}

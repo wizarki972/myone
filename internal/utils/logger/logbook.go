@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/wizarki972/myone/internal/config"
@@ -101,7 +100,7 @@ func (book *LogBook) AddFlag(flag string) {
 
 // Saves the log book in the specified location
 func (book *LogBook) SaveBook() {
-	logHeader := fmt.Sprintf("title=MyOne Log\ninvokedBySubCommand=%s\ninvokedByFlags=%s\nlogStartedAt=%s\nlogCount=%d\n\n===LOGS===\n\n", book.invokedBySubCmd, strings.TrimSpace(book.invokedByFlags), book.bookStartTime.Format("02-01-2006 15:04:05"), book.logCount)
+	logHeader := fmt.Sprintf("title=MyOne Log\ninvokedBySubCommand=%s\ninvokedByFlags=%s\nlogStartedAt=%s\nlogCount=%d\n\n===LOGS===\n\n", book.invokedBySubCmd, book.invokedByFlags, book.bookStartTime.Format("02-01-2006 15:04:05"), book.logCount)
 	fldir.WriteStringToFile(logHeader+book.logs, book.savePath)
 }
 

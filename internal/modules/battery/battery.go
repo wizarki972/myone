@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/wizarki972/myone/internal/utils/cmds"
@@ -47,7 +46,7 @@ func (b *Battery) BatteryCheck() {
 	}
 
 	for _, bat := range bats {
-		if strings.TrimSpace(fldir.ReadFileAsStringNoError(bat+"/present")) == "1" && strings.TrimSpace(fldir.ReadFileAsStringNoError(bat+"/type")) == "Battery" {
+		if fldir.ReadFileAsStringNoError(bat+"/present") == "1" && fldir.ReadFileAsStringNoError(bat+"/type") == "Battery" {
 			b.BatteryPath = bat
 			b.IsBatteryPresent = true
 		}
@@ -55,7 +54,7 @@ func (b *Battery) BatteryCheck() {
 }
 
 func (b *Battery) RemainingBatteryPercent() int {
-	level, err := strconv.Atoi(strings.TrimSpace(fldir.ReadFileAsStringNoError(filepath.Join(b.BatteryPath, "capacity"))))
+	level, err := strconv.Atoi(fldir.ReadFileAsStringNoError(filepath.Join(b.BatteryPath, "capacity")))
 	if err != nil {
 		b.logg_book.EnterLogAndPrint("Error while converting battery value obtaned into integer format.", logger.LogTypes.Error, err)
 	}

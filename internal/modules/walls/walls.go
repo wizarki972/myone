@@ -82,14 +82,14 @@ func (w *Wall) RefreshLocalIndices() {
 		}
 
 		parts := strings.Split(line, "=")
-		version, err := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
+		version, err := strconv.ParseFloat(parts[0], 64)
 		if err != nil {
 			w.logg_book.EnterLogAndPrint("Failed to parse float from string.", logger.LogTypes.Error, err)
 		}
-		w.local_indices[strings.ToLower(strings.TrimSpace(parts[1]))] = &index{
+		w.local_indices[strings.ToLower(parts[1])] = &index{
 			Version: version,
-			Name:    strings.TrimSpace(parts[1]),
-			ZipName: strings.TrimSpace(parts[2]),
+			Name:    parts[1],
+			ZipName: parts[2],
 		}
 	}
 	w.is_local_refreshed = true
@@ -114,14 +114,14 @@ func (w *Wall) RefreshRepoIndices() {
 		}
 
 		parts := strings.Split(line, " = ")
-		version, err := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
+		version, err := strconv.ParseFloat(parts[0], 64)
 		if err != nil {
 			w.logg_book.EnterLogAndPrint("Failed to parse float from string.", logger.LogTypes.Error, err)
 		}
-		w.repo_indices[strings.ToLower(strings.TrimSpace(parts[1]))] = &index{
+		w.repo_indices[strings.ToLower(parts[1])] = &index{
 			Version: version,
-			Name:    strings.TrimSpace(parts[1]),
-			ZipName: strings.TrimSpace(parts[2]),
+			Name:    parts[1],
+			ZipName: parts[2],
 		}
 	}
 	w.is_repo_refreshed = true
@@ -235,7 +235,7 @@ func (w *Wall) ShowWallpaperChangeMenu() {
 	}
 
 	// WALLS MENU
-	pack_dir := filepath.Join(w.wallDir, strings.TrimSpace(string(selected_pack)))
+	pack_dir := filepath.Join(w.wallDir, selected_pack)
 	rofi_input, err = w.rofiWallMenuBuilder(pack_dir, "")
 	if err != nil {
 		w.logg_book.EnterLogAndPrint("Error while building rofi menu for wallpapers.", logger.LogTypes.Error, err)
