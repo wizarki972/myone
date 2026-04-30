@@ -25,6 +25,7 @@ func (t *Themer) generatePlaceholderValues() {
 	}
 }
 
+// places files that changes based on themes
 func (t *Themer) placeThemeDependentFiles() {
 	td_path := filepath.Join(t.themesDir, "theme_deps")
 
@@ -49,10 +50,11 @@ func (t *Themer) placeThemeDependentFiles() {
 
 }
 
+// place files
 func (t *Themer) placeCommonFiles() {
 	common_dir := filepath.Join(t.themesDir, "common")
 	if !fldir.IsPathExist(common_dir) {
-		t.logg_book.EnterLogAndPrint("Theme not found, trying to update themes...", logger.LogTypes.Info, nil)
+		t.logg_book.EnterLogAndPrint("Theme not found, trying to download/update themes...", logger.LogTypes.Info, nil)
 		t.Download()
 	}
 
@@ -63,6 +65,7 @@ func (t *Themer) placeCommonFiles() {
 	t.set_common_state(true)
 }
 
+// common logic for placing files
 func (t *Themer) placeFilesLogic(path, suffix string, force_fill bool) error {
 	entries, err := os.ReadDir(path)
 	if err != nil {
@@ -95,6 +98,7 @@ func (t *Themer) placeFilesLogic(path, suffix string, force_fill bool) error {
 	return nil
 }
 
+// fills the data required by files.
 func (t *Themer) fill(current_path, save_path string) {
 	file, err := fldir.ReadFileAsString(current_path)
 	if err != nil {

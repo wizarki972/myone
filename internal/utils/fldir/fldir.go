@@ -15,13 +15,16 @@ import (
 )
 
 // PATHS
-
+// if the path accessible then returns true, else it returns false
 func IsPathExist(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
 }
 
 // FILES
+// CreateFile creates a file if not exists.
+// If already exists, then overwrites(empties) it and return *os.File.
+// If a directory is present there then returns PathError.
 func CreateFile(path string) (*os.File, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return nil, err
@@ -35,6 +38,7 @@ func CreateFile(path string) (*os.File, error) {
 	return file, nil
 }
 
+// Reads the file data as string
 func ReadFileAsString(path string) (string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -43,6 +47,8 @@ func ReadFileAsString(path string) (string, error) {
 	return strings.TrimSpace(string(data)), nil
 }
 
+// Reads the file data as string, if an error occurs then it returns empty string
+// remove this after rewriting battery service.
 func ReadFileAsStringNoError(path string) string {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -51,6 +57,7 @@ func ReadFileAsStringNoError(path string) string {
 	return strings.TrimSpace(string(data))
 }
 
+// Writes string as a file in the given path
 func WriteStringToFile(content, path string) error {
 	if err := CreateDirectory(filepath.Dir(path)); err != nil {
 		return err
@@ -62,6 +69,7 @@ func WriteStringToFile(content, path string) error {
 	return nil
 }
 
+// copy file(s) from source to destination
 func CopyFile(source_path, destination_path string) error {
 	info, err := os.Stat(source_path)
 	if err != nil {
@@ -94,7 +102,7 @@ func CopyFile(source_path, destination_path string) error {
 }
 
 // DIRS
-
+// Creates directory
 func CreateDirectory(path string) error {
 	info, err := os.Stat(path)
 	if err == nil {
@@ -117,7 +125,7 @@ func CreateDirectory(path string) error {
 }
 
 // ARCHIVES
-
+// Extracts .zip files to destination
 func Unzip(source, destination string) error {
 	zip_file, err := zip.OpenReader(source)
 	if err != nil {
@@ -165,7 +173,7 @@ func Unzip(source, destination string) error {
 }
 
 // URLs
-
+// Reads text from URL
 func ReadTextFileFromURL(URL string, save bool, save_path string) (string, error) {
 	resp, err := http.Get(URL)
 	if err != nil {
@@ -210,6 +218,7 @@ func (pw *progress_writter) Write(b []byte) (int, error) {
 	return n, nil
 }
 
+// Downloads files from the given URL
 func DownloadURL(URL, destination string, want_progress bool) error {
 	resp, err := http.Get(URL)
 	if err != nil {
@@ -293,6 +302,7 @@ func Move(src, dst string) error {
 	return nil
 }
 
+// Moves a file, but not a directory
 func moveFile(src, dst string, info os.FileInfo) error {
 	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 		return err
@@ -321,6 +331,7 @@ func moveFile(src, dst string, info os.FileInfo) error {
 	return os.Remove(src)
 }
 
+// Moves the directory
 func moveDir(src, dst string) error {
 	return filepath.WalkDir(src, func(path string, d os.DirEntry, err error) error {
 		if err != nil {

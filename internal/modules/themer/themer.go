@@ -148,7 +148,7 @@ func (t *Themer) Install() {
 	t.generatePlaceholderValues()
 	// Dir checks
 	if !fldir.IsPathExist(t.themesDir) {
-		t.logg_book.EnterLogAndPrint("Theme not found, trying to update themes...", logger.LogTypes.Info, nil)
+		t.logg_book.EnterLogAndPrint("Theme not found, trying to download/update themes...", logger.LogTypes.Info, nil)
 		t.Download()
 	}
 
@@ -248,20 +248,22 @@ func (t *Themer) apply_colors() {
 	}
 }
 
-// stores whether config files are installed or not
+// stores whether config files/initial setup is complete or not
 func (t *Themer) common_state() bool {
-	if fldir.IsPathExist(t.commonStatePath) {
-		data, err := fldir.ReadFileAsString(t.commonStatePath)
-		if err != nil {
-			t.logg_book.EnterLogAndPrint("Error while reading common state - "+t.commonStatePath, logger.LogTypes.Error, err)
-		}
-		if data == "1" {
-			return true
-		}
+	data, err := fldir.ReadFileAsString(t.commonStatePath)
+	if errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+	if err != nil {
+		t.logg_book.EnterLogAndPrint("Error while reading common state - "+t.commonStatePath, logger.LogTypes.Error, err)
+	}
+	if data == "1" {
+		return true
 	}
 	return false
 }
 
+// sets common state - indicates whether files/initial setup is complete or not
 func (t *Themer) set_common_state(state bool) {
 	var content string
 	if state {

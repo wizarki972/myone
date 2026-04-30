@@ -3,6 +3,7 @@ package pkg
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/wizarki972/myone/internal/utils/cmds"
@@ -48,11 +49,10 @@ func IsPkgInstalled(pkg_name string) bool {
 // Installs linux packages for arch using pacman.
 // It reads the package names from a file
 func InstallPkgsFromFile(path string) error {
-	if !fldir.IsPathExist(path) {
+	content, err := fldir.ReadFileAsString(path)
+	if errors.Is(err, os.ErrNotExist) {
 		return errors.New("dependency list file not found.")
 	}
-
-	content, err := fldir.ReadFileAsString(path)
 	if err != nil {
 		return err
 	}
