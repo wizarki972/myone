@@ -65,6 +65,7 @@ func (w *Wall) RefreshLocalIndices() {
 		if _, err := os.Create(local_index_path); err != nil {
 			w.logg_book.EnterLogAndPrint("Failed to create local index path.", logger.LogTypes.Error, err)
 		}
+		w.logg_book.EnterLogAndPrint("Created local index file for wallpapers, since the file was not found.", logger.LogTypes.Info, nil)
 		return
 	}
 
