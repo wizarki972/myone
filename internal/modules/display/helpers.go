@@ -69,31 +69,31 @@ func swayOSDNotify(backlight_name string) {
 }
 
 // gets screen resolution using hyprctl
-func GetScreenResolution() []int {
+func GetScreenResolution() (int, int, int, error) {
 	var monitors []hyprMonitor
 	output, _ := cmds.ExecCommandBytes(hyprlandMonitorsComamnd, true)
 	if err := json.Unmarshal(output, &monitors); err != nil {
-		panic(err)
+		return 0, 0, 0, err
 	}
 
 	for _, monitor := range monitors {
 		if monitor.Focused {
-			return []int{monitor.Width, monitor.Height, int(monitor.Scale)}
+			return monitor.Width, monitor.Height, int(monitor.Scale), nil
 		}
 	}
 
-	panic(errors.New("focused monitor not found"))
+	return 0, 0, 0, errors.New("focused monitor not found")
 }
 
 // gets border thickness value from hyprland config
-func GetHyprBorder() int {
+func GetHyprBorder() (int, error) {
 	command := "hyprctl -j getoption decoration:rounding"
 	output, _ := cmds.ExecCommandBytes(command, true)
 
 	var hyprOption HyprOption
 	if err := json.Unmarshal([]byte(output), &hyprOption); err != nil {
-		panic(err)
+		return 0, err
 	}
 
-	return hyprOption.Int
+	return hyprOption.Int, nil
 }

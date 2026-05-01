@@ -16,14 +16,19 @@ import (
 
 // generates dynamic/placeholder values for dynamic config files
 func (t *Themer) generatePlaceholderValues() {
+	width, height, _, err := display.GetScreenResolution()
+	if err != nil {
+		t.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+	}
 	t.themePlaceholderValues = map[string]string{
 		"${SCRIPTS_DIRECTORY_PATH}":   filepath.Join(t.homeDir, common.SCRIPTS_DIR),
 		"${CURRENT_WALLPAPER_PATH}":   filepath.Join(t.homeDir, common.CURRENT_WALLPAPER_ENTRY_PATH),
 		"${ALL_WALLS_DIRECTORY_PATH}": filepath.Join(t.homeDir, common.ALL_WALLS_DIR),
 		"${ROFI_IMAGE}":               t.get_rofi_image(),
-		"${SCREEN_WIDTH}":             strconv.Itoa(display.GetScreenResolution()[0]),
-		"${SCREEN_HEIGHT}":            strconv.Itoa(display.GetScreenResolution()[1]),
+		"${SCREEN_WIDTH}":             strconv.Itoa(width),
+		"${SCREEN_HEIGHT}":            strconv.Itoa(height),
 	}
+
 }
 
 // places files that changes based on themes

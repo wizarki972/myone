@@ -13,12 +13,16 @@ import (
 
 // values to structure wlogout menu
 func GetLogoutValues(layout int) (map[string]string, error) {
-	vals := display.GetScreenResolution()
-	width := vals[0]
-	height := vals[1]
-	scale := vals[2] * 100
+	width, height, scale, err := display.GetScreenResolution()
+	scale = scale * 100
+	if err != nil {
+		return nil, err
+	}
 
-	hyprBorder := display.GetHyprBorder()
+	hyprBorder, err := display.GetHyprBorder()
+	if err != nil {
+		return nil, err
+	}
 	fontSize := fmt.Sprintf("%d", height*2/100)
 	buttonRadius := fmt.Sprintf("%d", hyprBorder*8)
 	activeButtonRadius := fmt.Sprintf("%d", hyprBorder*5)
