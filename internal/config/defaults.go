@@ -9,6 +9,9 @@ import (
 )
 
 var DefaultConfig = Config{
+	Battery: Battery{
+		Threshold: 20,
+	},
 	Logs: Logs{
 		Level:           3,
 		Panic:           false,

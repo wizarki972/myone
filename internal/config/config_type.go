@@ -2,12 +2,18 @@ package config
 
 // Overall Config Struct
 type Config struct {
-	Logs Logs `toml:"Logs"`
+	Battery Battery `toml:"Battery"`
+	Logs    Logs    `toml:"Logs"`
 }
 
 // General Section
 
-// Log Section
+// Battery
+type Battery struct {
+	Threshold int `toml:"Threshold"`
+}
+
+// Logging
 type Logs struct {
 	Level           int    `toml:"Level"`
 	Panic           bool   `toml:"Panic"`
