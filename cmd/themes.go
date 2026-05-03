@@ -50,9 +50,9 @@ func initializeThemesFlags() {
 
 	themesCMD.Flags().StringVarP(&applyTheme, "apply", "a", "", "Applies the specified theme.")
 
-	themesCMD.Flags().BoolVar(&saveLog, "save-log", false, "saves the based on the default path or path specified in config.\nNo need to use this flag, if you are using --log-path flag.")
+	themesCMD.Flags().BoolVar(&saveLog, "save-log", false, "saves the log based on the default path or path specified in config.\nNo need to use this flag, if you are using --log-path flag.")
 
-	themesCMD.Flags().StringVar(&logPath, "log-path", "", "Enter the path to save the log.")
+	themesCMD.Flags().StringVar(&logPath, "log-path", "", "saves the log to the provided path.")
 
 	rootCMD.AddCommand(themesCMD)
 }

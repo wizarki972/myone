@@ -12,14 +12,12 @@ import (
 	"github.com/wizarki972/myone/internal/modules/display"
 	"github.com/wizarki972/myone/internal/modules/logout"
 	"github.com/wizarki972/myone/internal/modules/screenshot"
-	"github.com/wizarki972/myone/internal/utils/logger"
 	"github.com/wizarki972/myone/internal/utils/pkg"
 )
 
-var brightness, volumeNotify, logPath string
+var brightness, volumeNotify string
 var logOut int
-var screenShot, monitorDaemon, batteryMonitor, version, update, depCheck, saveLog bool
-var loggerInstance *logger.LogBook
+var screenShot, monitorDaemon, batteryMonitor, version, update, depCheck bool
 
 var rootCMD = &cobra.Command{
 	Use:   "myone",
@@ -95,9 +93,9 @@ func initializeFlags() {
 
 	rootCMD.Flags().BoolVar(&depCheck, "dependency-check", false, "checks whether all dependencies are installed.")
 
-	rootCMD.Flags().BoolVar(&saveLog, "save-log", false, "saves the based on the default path or path specified in config.\nNo need to use this flag, if you are using --log-path flag.")
+	rootCMD.Flags().BoolVar(&saveLog, "save-log", false, "saves the log based on the default path or path specified in config.\nNo need to use this flag, if you are using --log-path flag.")
 
-	rootCMD.Flags().StringVar(&logPath, "log-path", "", "Enter the path to save the log.")
+	rootCMD.Flags().StringVar(&logPath, "log-path", "", "saves the log to the provided path.")
 
 	initializeThemesFlags()
 	initializeWallsFlags()

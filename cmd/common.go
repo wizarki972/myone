@@ -9,9 +9,13 @@ import (
 	"github.com/wizarki972/myone/internal/utils/logger"
 )
 
+var userConfig *config.Config
+var loggerInstance *logger.LogBook
+var logPath string
+var saveLog bool
+
 func handleLogg() *logger.LogBook {
-	var userConfig = config.GetConfig()
-	var loggerInstance *logger.LogBook
+	userConfig = config.GetConfig()
 	switch {
 	case len(logPath) > 0:
 		if !strings.HasPrefix(logPath, fldir.GetHomeDir()) {

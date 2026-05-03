@@ -53,9 +53,9 @@ func initializeWallsFlags() {
 
 	wallpaperCMD.Flags().BoolVarP(&wallMenu, "menu", "m", false, "Shows a rofi menu for the wallpaper choosing.")
 
-	wallpaperCMD.Flags().BoolVar(&saveLog, "save-log", false, "saves the based on the default path or path specified in config.\nNo need to use this flag, if you are using --log-path flag.")
+	wallpaperCMD.Flags().BoolVar(&saveLog, "save-log", false, "saves the log based on the default path or path specified in config.\nNo need to use this flag, if you are using --log-path flag.")
 
-	wallpaperCMD.Flags().StringVar(&logPath, "log-path", "", "Enter the path to save the log.")
+	wallpaperCMD.Flags().StringVar(&logPath, "log-path", "", "saves the log to the provided path.")
 
 	// SET WALLPAPER
 
