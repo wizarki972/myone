@@ -21,3 +21,8 @@ const CURRENT_THEME_NAME_ENTRY_PATH = BASE_DIR + "/" + CURRENT_THEME_NAME_ENTRY
 
 const THEMES_STATE_DIR = ".local/state/myone"
 const COMMON_PLACED_STATE_PATH = THEMES_STATE_DIR + "/is_common_placed"
+
+// PID PATHS
+const RUN_DIR = "/run/user"
+const BATT_MON_PID_FILE_NAME = "myone-batt-mon.pid"
+const MONITOR_MON_PID_FILE_NAME = "myone-monitor-mon.pid"
