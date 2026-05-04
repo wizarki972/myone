@@ -99,6 +99,7 @@ func initializeFlags() {
 
 	initializeThemesFlags()
 	initializeWallsFlags()
+	initializeServicesFlags()
 }
 
 func Execute() {
