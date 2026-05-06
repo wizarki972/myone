@@ -18,6 +18,9 @@ var DefaultConfig = Config{
 		DirectoryPath:   getDefaultLogsDirPath(),
 		SaveLogsOnError: false,
 	},
+	Experimental: Experimental{
+		UseSerialIDForASD: false,
+	},
 }
 
 func getDefaultLogsDirPath() string {

@@ -2,8 +2,9 @@ package config
 
 // Overall Config Struct
 type Config struct {
-	Battery Battery `toml:"Battery"`
-	Logs    Logs    `toml:"Logs"`
+	Battery      Battery      `toml:"Battery"`
+	Logs         Logs         `toml:"Logs"`
+	Experimental Experimental `toml:"Experimental"`
 }
 
 // General Section
@@ -19,4 +20,9 @@ type Logs struct {
 	Panic           bool   `toml:"Panic"`
 	DirectoryPath   string `toml:"DirectoryPath"`
 	SaveLogsOnError bool   `toml:"SaveLogsOnError"`
+}
+
+// Experimental
+type Experimental struct {
+	UseSerialIDForASD bool `toml:"UseSerialIDForASD"`
 }
