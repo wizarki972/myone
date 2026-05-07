@@ -13,7 +13,7 @@ func (t *Themer) refreshDesktop() {
 
 	for _, name := range processes {
 		command := fmt.Sprintf("pkill -x %s && %s", name, name)
-		_, err := cmds.ExecCommand(command, false, false)
+		err := cmds.ExecCommandDetached(command)
 		if err != nil {
 			t.logg_book.EnterLogAndPrint("failed while refreshing"+name+"this process.", logger.LogTypes.Error, err)
 		}
