@@ -2,27 +2,27 @@ package config
 
 // Overall Config Struct
 type Config struct {
-	Battery      Battery      `toml:"Battery"`
-	Logs         Logs         `toml:"Logs"`
-	Experimental Experimental `toml:"Experimental"`
+	Battery      Battery      `toml:"battery"`
+	Logs         Logs         `toml:"logs"`
+	Experimental Experimental `toml:"experimental"`
 }
 
 // General Section
 
 // Battery
 type Battery struct {
-	Threshold int `toml:"Threshold"`
+	Threshold int `toml:"threshold"`
 }
 
 // Logging
 type Logs struct {
-	Level           int    `toml:"Level"`
-	Panic           bool   `toml:"Panic"`
-	DirectoryPath   string `toml:"DirectoryPath"`
-	SaveLogsOnError bool   `toml:"SaveLogsOnError"`
+	Level           int    `toml:"level"`
+	Panic           bool   `toml:"panic"`
+	DirectoryPath   string `toml:"directory_path"`
+	SaveLogsOnError bool   `toml:"save_logs_on_error"`
 }
 
 // Experimental
 type Experimental struct {
-	UseSerialIDForASD bool `toml:"UseSerialIDForASD"`
+	UseSerialIDForASD bool `toml:"use_serial_id_for_apple_studio_displays"`
 }
