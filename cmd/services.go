@@ -57,5 +57,5 @@ func initializeServicesFlags() {
 
 	servicesCMD.Flags().StringVar(&logPath, "log-path", "", "saves the log to the provided path.")
 
-	rootCMD.AddCommand(servicesCMD)
+	// rootCMD.AddCommand(servicesCMD)
 }
