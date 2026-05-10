@@ -1,9 +1,11 @@
 package services
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -105,11 +107,12 @@ func (monitor *Monitor) setBrightness(value float64, userConfig *config.Config, 
 }
 
 type MonitorManagaer struct {
-	loggBook       *logger.LogBook
-	userConfig     *config.Config
-	mu             sync.RWMutex
-	ddcutilPresent bool
-	asdbctlPresent bool
+	loggBook        *logger.LogBook
+	userConfig      *config.Config
+	hyprlandSocket2 string
+	mu              sync.RWMutex
+	ddcutilPresent  bool
+	asdbctlPresent  bool
 
 	monitors map[string]*Monitor
 
@@ -121,12 +124,40 @@ func NewMonitorManager(loggBook *logger.LogBook, userConfig *config.Config) *Mon
 		loggBook.EnterLogAndPrint("Experimental :: Using serial ID of Monitors. Helps with multiple Apple Studio Displays", logger.LogTypes.Info, nil)
 	}
 
+	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+	hyprlandInstanceSign := os.Getenv("HYPRLAND_INSTANCE_SIGNATURE")
+	if len(strings.TrimSpace(runtimeDir)) == 0 {
+		loggBook.EnterLogAndPrint("Cannot get XDG Runtime Directory environment variable.", logger.LogTypes.Error, errors.New("cannot get XDG Runtime Directory environment variable"))
+	}
+	if len(strings.TrimSpace(hyprlandInstanceSign)) == 0 {
+		loggBook.EnterLogAndPrint("Cannot get Hyprland Instance Signature environment variable.", logger.LogTypes.Error, errors.New("cannot get Hyprland Instance Signature environment variable"))
+	}
+
 	return &MonitorManagaer{
-		userConfig:     userConfig,
-		loggBook:       loggBook,
-		increment:      0.05,
-		ddcutilPresent: pkg.IsPkgInstalled("ddcutil"),
-		asdbctlPresent: pkg.IsPkgInstalled("asdbctl"),
+		userConfig:      userConfig,
+		loggBook:        loggBook,
+		hyprlandSocket2: filepath.Join(runtimeDir, "hypr", hyprlandInstanceSign, ".socket2.sock"),
+		increment:       0.05,
+		ddcutilPresent:  pkg.IsPkgInstalled("ddcutil"),
+		asdbctlPresent:  pkg.IsPkgInstalled("asdbctl"),
+	}
+}
+
+func (mm *MonitorManagaer) HyprlandIPCListener() {
+	conn, err := net.Dial("unix", mm.hyprlandSocket2)
+	if err != nil {
+		mm.loggBook.EnterLogAndPrint("Cannot dial hyprland socket2 - "+mm.hyprlandSocket2, logger.LogTypes.Error, err)
+	}
+	defer conn.Close()
+
+	mm.loggBook.EnterLogAndPrint("Monitoring Hyprland IPC socket -> "+mm.hyprlandSocket2, logger.LogTypes.Info, nil)
+	scanner := bufio.NewScanner(conn)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if strings.HasPrefix(line, "monitorremoved") || strings.HasPrefix(line, "monitoradded") {
+			mm.loggBook.EnterLogAndPrint("Change detected in the number of monitors. Updating monitors information.", logger.LogTypes.Info, nil)
+			mm.Discover()
+		}
 	}
 }
 
