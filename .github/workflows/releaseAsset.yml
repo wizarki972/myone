@@ -1,0 +1,50 @@
+name: Release Asset
+
+on:
+  push:
+    tags:
+      - 'v*' # Keeps working automatically for future releases
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'The existing tag to create a flat ZIP for (e.g., v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      # Determine which tag to use based on how the workflow was triggered
+      - name: Set Tag Variable
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "TAG=${{ inputs.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "TAG=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      # Check out the specific older tag instead of the latest main commit
+      - name: Checkout specific tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.vars.outputs.TAG }}
+
+      - name: Create Flat Zip Archive
+        run: |
+          zip -r flat-archive.zip . -x "*.git*" ".github*" ".vscode" ".gitignore"
+
+      # Uploads the asset. If the release already exists, it adds to it.
+      - name: Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.TAG }}
+          files: flat-archive.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
