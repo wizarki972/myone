@@ -18,7 +18,7 @@ import (
 func (t *Themer) generatePlaceholderValues() {
 	width, height, _, err := display.GetScreenResolution()
 	if err != nil {
-		t.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+		t.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 	}
 	t.themePlaceholderValues = map[string]string{
 		"${SCRIPTS_DIRECTORY_PATH}":   filepath.Join(t.homeDir, common.SCRIPTS_DIR),
@@ -39,19 +39,19 @@ func (t *Themer) placeThemeDependentFiles() {
 	info, err := os.Stat(td_path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			t.logg_book.EnterLogAndPrint("No theme dependent configs are found.", logger.LogTypes.Error, err)
+			t.loggBook.EnterLogAndPrint("No theme dependent configs are found.", logger.LogTypes.Error, err)
 			return
 		}
 		panic(err)
 	}
 	if !info.IsDir() {
-		t.logg_book.EnterLogAndPrint("Instead of theme dependent config files directory, found a file. Skipping it.", logger.LogTypes.Warning, nil)
+		t.loggBook.EnterLogAndPrint("Instead of theme dependent config files directory, found a file. Skipping it.", logger.LogTypes.Warning, nil)
 		return
 	}
 
 	// place files logic
 	if err := t.placeFilesLogic(td_path, "", true); err != nil {
-		t.logg_book.EnterLogAndPrint("An error occurred while placing theme dependent files. error => "+err.Error(), logger.LogTypes.Warning, err)
+		t.loggBook.EnterLogAndPrint("An error occurred while placing theme dependent files. error => "+err.Error(), logger.LogTypes.Warning, err)
 	}
 
 }
@@ -60,12 +60,12 @@ func (t *Themer) placeThemeDependentFiles() {
 func (t *Themer) placeCommonFiles() {
 	common_dir := filepath.Join(t.themesDir, "common")
 	if !fldir.IsPathExist(common_dir) {
-		t.logg_book.EnterLogAndPrint("Theme not found, trying to download/update themes...", logger.LogTypes.Info, nil)
+		t.loggBook.EnterLogAndPrint("Theme not found, trying to download/update themes...", logger.LogTypes.Info, nil)
 		t.Download()
 	}
 
 	if err := t.placeFilesLogic(common_dir, "", false); err != nil {
-		t.logg_book.EnterLogAndPrint("An error occurred while placing common files. error => "+err.Error(), logger.LogTypes.Warning, err)
+		t.loggBook.EnterLogAndPrint("An error occurred while placing common files. error => "+err.Error(), logger.LogTypes.Warning, err)
 	}
 
 	t.set_common_state(true)
@@ -75,7 +75,7 @@ func (t *Themer) placeCommonFiles() {
 func (t *Themer) placeFilesLogic(path, suffix string, force_fill bool) error {
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		t.logg_book.EnterLogAndPrint("Cannot read entries from directory - "+path, logger.LogTypes.Error, err)
+		t.loggBook.EnterLogAndPrint("Cannot read entries from directory - "+path, logger.LogTypes.Error, err)
 	}
 
 	if len(entries) == 0 {
@@ -89,13 +89,13 @@ func (t *Themer) placeFilesLogic(path, suffix string, force_fill bool) error {
 			t.placeFilesLogic(entry_path, filepath.Join(suffix, entry.Name()), force_fill)
 		} else {
 			if err := fldir.CreateDirectory(filepath.Join(t.homeDir, suffix)); err != nil {
-				t.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+				t.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 			}
 			if force_fill || strings.HasPrefix(entry.Name(), "$") {
 				t.fill(entry_path, filepath.Join(t.homeDir, suffix, strings.TrimPrefix(entry.Name(), "$")))
 			} else {
 				if err := fldir.CopyFile(entry_path, filepath.Join(t.homeDir, suffix, entry.Name())); err != nil {
-					t.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+					t.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 				}
 			}
 		}
@@ -108,13 +108,13 @@ func (t *Themer) placeFilesLogic(path, suffix string, force_fill bool) error {
 func (t *Themer) fill(current_path, save_path string) {
 	file, err := fldir.ReadFileAsString(current_path)
 	if err != nil {
-		t.logg_book.EnterLogAndPrint("Cannot read file - "+current_path, logger.LogTypes.Error, err)
+		t.loggBook.EnterLogAndPrint("Cannot read file - "+current_path, logger.LogTypes.Error, err)
 	}
 
 	for old, new := range t.themePlaceholderValues {
 		file = strings.ReplaceAll(file, old, new)
 	}
 	if err := fldir.WriteStringToFile(file, save_path); err != nil {
-		t.logg_book.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+		t.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 	}
 }

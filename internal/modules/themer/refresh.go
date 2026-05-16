@@ -15,7 +15,7 @@ func (t *Themer) refreshDesktop() {
 		command := fmt.Sprintf("pkill -x %s && %s", name, name)
 		err := cmds.ExecCommandDetached(command)
 		if err != nil {
-			t.logg_book.EnterLogAndPrint("failed while refreshing"+name+"this process.", logger.LogTypes.Error, err)
+			t.loggBook.EnterLogAndPrint("failed while refreshing"+name+"this process.", logger.LogTypes.Error, err)
 		}
 	}
 }
