@@ -55,7 +55,7 @@ func SelfUpdate(loggBook *logger.LogBook) {
 
 				// COMMAND
 				cmd := exec.Command("bash", "-c", "make full_install")
-				cmd.Dir = filepath.Join(tempDir, "myone-main")
+				cmd.Dir = tempDir
 				cmd.Stdout = os.Stdout
 				cmd.Stdin = os.Stdin
 				cmd.Stderr = os.Stderr
