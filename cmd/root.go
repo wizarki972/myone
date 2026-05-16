@@ -8,11 +8,11 @@ import (
 	"github.com/wizarki972/myone/internal/common"
 	"github.com/wizarki972/myone/internal/modules/audio"
 	"github.com/wizarki972/myone/internal/modules/battery"
-	"github.com/wizarki972/myone/internal/modules/bootstrap"
 	"github.com/wizarki972/myone/internal/modules/display"
 	"github.com/wizarki972/myone/internal/modules/logout"
 	"github.com/wizarki972/myone/internal/modules/screenshot"
 	"github.com/wizarki972/myone/internal/utils/pkg"
+	"github.com/wizarki972/myone/internal/utils/release"
 )
 
 var brightness, volumeNotify string
@@ -54,12 +54,12 @@ var rootCMD = &cobra.Command{
 		}
 
 		if version {
-			fmt.Println(common.VERSION)
+			fmt.Println(common.GetVersionString())
 		}
 
 		if update {
 			loggerInstance.AddFlag("update")
-			bootstrap.SelfUpdate(loggerInstance)
+			release.SelfUpdate(loggerInstance)
 		}
 
 		if depCheck {
