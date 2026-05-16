@@ -8,11 +8,12 @@ GO := go
 DESTDIR :=
 PREFIX := /usr/local
 
-VERSION := 0.9.2
-BUILD := beta
+MAJOR_VERSION := 9
+MINOR_VERSION := 2
+PATCH_VERSION := 0
 
 FLAGS ?= -trimpath -mod=readonly -modcacherw
-LDFLAGS := -X "github.com/wizarki972/myone/internal/common.VERSION=${VERSION}" -X "github.com/wizarki972/myone/internal/common.BUILD=${BUILD}" -s -w
+LDFLAGS := -X "github.com/wizarki972/myone/internal/common.MAJOR_VERSION=${MAJOR_VERSION}" -X "github.com/wizarki972/myone/internal/common.PATCH_VERSION=${PATCH_VERSION}" -X "github.com/wizarki972/myone/internal/common.MINOR_VERSION=${MINOR_VERSION}" -s -w
 # For PIE Security features, I don't think this is needed... is it? 
 EXTRA_FLAGS ?= -buildmode=pie
 

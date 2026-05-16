@@ -48,10 +48,10 @@ func IsPkgInstalled(pkg_name string) bool {
 // It reads the package names from a file
 func InstallPkgsFromFile(path string) error {
 	content, err := fldir.ReadFileAsString(path)
-	if errors.Is(err, os.ErrNotExist) {
-		return errors.New("dependency list file not found.")
-	}
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return errors.New("dependency list file not found.")
+		}
 		return err
 	}
 
