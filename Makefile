@@ -9,7 +9,7 @@ DESTDIR :=
 PREFIX := /usr/local
 
 MAJOR_VERSION := 9
-MINOR_VERSION := 2
+MINOR_VERSION := 3
 PATCH_VERSION := 0
 
 FLAGS ?= -trimpath -mod=readonly -modcacherw
