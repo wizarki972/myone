@@ -15,6 +15,7 @@ import (
 
 	"github.com/wizarki972/myone/internal/config"
 	"github.com/wizarki972/myone/internal/utils/cmds"
+	"github.com/wizarki972/myone/internal/utils/fldir"
 	"github.com/wizarki972/myone/internal/utils/logger"
 	"github.com/wizarki972/myone/internal/utils/pkg"
 )
@@ -122,7 +123,10 @@ func NewMonitorManager(loggBook *logger.LogBook, userConfig *config.Config) *Mon
 		loggBook.EnterLogAndPrint("Experimental :: Using serial ID of Monitors. Helps with multiple Apple Studio Displays", logger.LogTypes.Info, nil)
 	}
 
-	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+	runtimeDir, err := fldir.GetRuntimeDir()
+	if err != nil {
+		loggBook.EnterLogAndPrint("Failed to get a proper runtime directory.", logger.LogTypes.Error, err)
+	}
 	hyprlandInstanceSign := os.Getenv("HYPRLAND_INSTANCE_SIGNATURE")
 	if len(strings.TrimSpace(runtimeDir)) == 0 {
 		loggBook.EnterLogAndPrint("Cannot get XDG Runtime Directory environment variable.", logger.LogTypes.Error, errors.New("cannot get XDG Runtime Directory environment variable"))
