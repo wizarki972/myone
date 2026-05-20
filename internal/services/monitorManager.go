@@ -19,14 +19,6 @@ import (
 	"github.com/wizarki972/myone/internal/utils/pkg"
 )
 
-// todos
-// dropping temporary/used variable from memory
-// dependency warning in New(), maybe notifications too.
-// checking pending -- brightness changing
-// hyprland IPC monitoring && srevice runner
-// communication other services
-// gaurd rails for low brightness
-
 const HYPRCTL_MONITORS_CMD = "hyprctl -j monitors"
 
 type DisplayType int
@@ -59,7 +51,7 @@ type Monitor struct {
 	mu         sync.Mutex
 }
 
-func (monitor *Monitor) setBrightness(value float64, userConfig *config.Config, loggBook *logger.LogBook) {
+func (monitor *Monitor) setBrightness(value float32, userConfig *config.Config, loggBook *logger.LogBook) {
 	var command string
 	switch monitor.DisplayType {
 	case Backlight:
@@ -107,16 +99,22 @@ func (monitor *Monitor) setBrightness(value float64, userConfig *config.Config, 
 }
 
 type MonitorManagaer struct {
-	loggBook        *logger.LogBook
-	userConfig      *config.Config
+	loggBook   *logger.LogBook
+	userConfig *config.Config
+	mu         sync.RWMutex
+
+	// socket paths...
 	hyprlandSocket2 string
-	mu              sync.RWMutex
-	ddcutilPresent  bool
-	asdbctlPresent  bool
+	mmSocket        string
 
-	monitors map[string]*Monitor
+	// dependency checks...
+	ddcutilPresent bool
+	asdbctlPresent bool
 
-	increment float64
+	// data...
+	monitors                 map[string]*Monitor
+	brightnessChangeRequests chan map[string]float32
+	quit                     chan string
 }
 
 func NewMonitorManager(loggBook *logger.LogBook, userConfig *config.Config) *MonitorManagaer {
@@ -134,16 +132,55 @@ func NewMonitorManager(loggBook *logger.LogBook, userConfig *config.Config) *Mon
 	}
 
 	return &MonitorManagaer{
-		userConfig:      userConfig,
-		loggBook:        loggBook,
+		userConfig: userConfig,
+		loggBook:   loggBook,
+
+		mmSocket:        filepath.Join(runtimeDir, "myone", "monitor.sock"),
 		hyprlandSocket2: filepath.Join(runtimeDir, "hypr", hyprlandInstanceSign, ".socket2.sock"),
-		increment:       0.05,
-		ddcutilPresent:  pkg.IsPkgInstalled("ddcutil"),
-		asdbctlPresent:  pkg.IsPkgInstalled("asdbctl"),
+
+		ddcutilPresent: pkg.IsPkgInstalled("ddcutil"),
+		asdbctlPresent: pkg.IsPkgInstalled("asdbctl"),
+
+		monitors:                 make(map[string]*Monitor),
+		brightnessChangeRequests: make(chan map[string]float32),
+		quit:                     make(chan string),
+	}
+}
+
+func (mm *MonitorManagaer) brightnessRequestHandler() {
+	for {
+		select {
+		case req := <-mm.brightnessChangeRequests:
+			for monitorName, value := range req {
+				monitor, ok := mm.monitors[monitorName]
+				// if monitor not found...
+				if !ok {
+					mm.loggBook.EnterLogAndPrint("[ERROR] :: monitor not recignized (or) not found.", logger.LogTypes.Warning, nil)
+					break
+				}
+
+				// what if the information is lacking/display invalid
+				if !monitor.infoLock || monitor.DisplayType == Invalid {
+					mm.loggBook.EnterLogAndPrint("[ERROR] Monitor "+monitorName+" is recognised as an invalid monitor.", logger.LogTypes.Warning, nil)
+					break
+				}
+
+				// what if the brightness value is less thean/equal to zero...
+				if value > 0 {
+					monitor.setBrightness(value, mm.userConfig, mm.loggBook)
+				} else {
+					mm.loggBook.EnterLogAndPrint("[ERROR] Invalid brightness value.", logger.LogTypes.Warning, nil)
+					break
+				}
+			}
+		case <-mm.quit:
+			return
+		}
 	}
 }
 
 func (mm *MonitorManagaer) HyprlandIPCListener() {
+	mm.loggBook.EnterLogAndPrint("Starting Hyprland IPC listener...", logger.LogTypes.Info, nil)
 	conn, err := net.Dial("unix", mm.hyprlandSocket2)
 	if err != nil {
 		mm.loggBook.EnterLogAndPrint("Cannot dial hyprland socket2 - "+mm.hyprlandSocket2, logger.LogTypes.Error, err)
@@ -161,10 +198,59 @@ func (mm *MonitorManagaer) HyprlandIPCListener() {
 	}
 }
 
+func (mm *MonitorManagaer) StartService() {
+	if len(mm.monitors) == 0 {
+		mm.Discover()
+	}
+	go mm.HyprlandIPCListener()
+
+	mm.requestListener()
+}
+
+func (mm *MonitorManagaer) requestListener() {
+	os.Remove(mm.mmSocket)
+
+	listener, err := net.Listen("unix", mm.mmSocket)
+	if err != nil {
+		mm.loggBook.EnterLogAndPrint("Failed to listen from socket - "+mm.mmSocket, logger.LogTypes.Error, err)
+	}
+	defer listener.Close()
+
+	mm.loggBook.EnterLogAndPrint("Listening for requets...", logger.LogTypes.Info, nil)
+	for {
+		c, err := listener.Accept()
+		if err != nil {
+			mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+		}
+
+		go func(conn net.Conn) {
+			defer conn.Close()
+			scanner := bufio.NewScanner(conn)
+			for scanner.Scan() {
+				input := scanner.Text()
+				mm.loggBook.EnterLogAndPrint("Reveived ==> "+input, logger.LogTypes.Info, nil)
+				args := strings.Split(strings.TrimSpace(input), ">>")
+				if len(args) < 2 {
+					mm.loggBook.EnterLogAndPrint("Invalid request. "+input, logger.LogTypes.Warning, nil)
+				}
+				switch args[0] {
+				case "brightness":
+					mm.setBrightness(args[1])
+				}
+			}
+		}(c)
+	}
+}
+
+func (mm *MonitorManagaer) setBrightness(value string) {
+
+}
+
 func (mm *MonitorManagaer) Discover() {
 	mm.mu.Lock()
 	defer mm.mu.Unlock()
 
+	mm.loggBook.EnterLogAndPrint("Running moitor discover...", logger.LogTypes.Info, nil)
 	mm.monitors = make(map[string]*Monitor)
 	mm.getMonitors()
 
@@ -271,7 +357,7 @@ func (mm *MonitorManagaer) parseDDCUTIL() {
 	out, err := cmds.ExecCommand("ddcutil detect", false, true)
 	if err != nil {
 		if !mm.ddcutilPresent {
-			mm.loggBook.EnterLogAndPrint("ddcutil dependency not found", logger.LogTypes.Warning, err)
+			mm.loggBook.EnterLogAndPrint("ddcutil dependency not found", logger.LogTypes.Error, err)
 			return
 		}
 		mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
@@ -323,14 +409,14 @@ func (mm *MonitorManagaer) parseDDCUTIL() {
 		if len(i2cbusMatches) > 1 {
 			monitor.BusNum = i2cbusMatches[1]
 		} else if monitor.DisplayType == DDC {
-			// sine there are use for an serial ID in ddc when no bus number is found, skipping it...
+			// can we use the serial ID in ddc when no bus number is found, since I don't know I am skipping it for now...
 			monitor.infoLock = true
 			monitor.DisplayType = Invalid
 			continue
 		}
 
 		// serial number
-		if mm.userConfig.Experimental.UseSerialIDForASD {
+		if mm.userConfig.Experimental.UseSerialIDForASD && monitor.DisplayType == AppleDisplay {
 			serialMatches := serialMatch.FindStringSubmatch(block)
 			if len(serialMatches) > 1 {
 				monitor.SerialNum = serialMatches[1]
