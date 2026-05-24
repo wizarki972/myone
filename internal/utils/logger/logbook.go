@@ -79,7 +79,7 @@ func (book *LogBook) EnterLog(logMsg string, logType LogType, err error) {
 
 // It stores the log in the book and it also prints it.
 func (book *LogBook) EnterLogAndPrint(logMsg string, logType LogType, err error) {
-	book.mu.Unlock()
+	book.mu.Lock()
 	defer book.mu.Unlock()
 
 	if len(logMsg) == 0 {
