@@ -26,7 +26,7 @@ const HYPRCTL_MONITORS_CMD = "hyprctl -j monitors"
 var (
 	bctlRegExp        = regexp.MustCompile(`Device '([^']+)' of class 'backlight'`)
 	i2cbusMatch       = regexp.MustCompile(`/dev/i2c-(\d+)`)
-	drmConnectorMatch = regexp.MustCompile(`DRM connector:\s*((card\d+)-([\w-]+))`)
+	drmConnectorMatch = regexp.MustCompile(`DRM_connector:\s*((card\d+)-([\w-]+))`)
 	serialNumberMatch = regexp.MustCompile(`Serial number:\s+([\w-]+)`)
 )
 
@@ -57,6 +57,7 @@ type Monitor struct {
 
 	// non-static
 	maxBrightness     float64
+	minBrightness     float64
 	currentBrightness float64
 	mu                sync.RWMutex
 }
@@ -109,9 +110,9 @@ func (monitor *Monitor) setBrightness(value float64, userConfig *config.Config, 
 		loggBook.EnterLogAndPrint("Error in executing this command --> "+command, logger.LogTypes.Warning, nil)
 		return
 	}
+	loggBook.EnterLogAndPrint(fmt.Sprintf("%s --> brightness changed from %.2f to %.2f", monitor.Name, monitor.currentBrightness, value), logger.LogTypes.Info, nil)
 	monitor.currentBrightness = value
 	monitor.mu.Unlock()
-	loggBook.EnterLogAndPrint(fmt.Sprintf("%s --> brightness changed from %.2f to %.2f", monitor.Name, monitor.currentBrightness, value), logger.LogTypes.Info, nil)
 }
 
 type MonitorManager struct {
@@ -222,6 +223,7 @@ func (mm *MonitorManager) addBrightnessRequest(monitorName, value string) {
 	monitor.mu.RLock()
 	currentBrightness := monitor.currentBrightness
 	maxBrightness := monitor.maxBrightness
+	minBrightness := monitor.minBrightness
 	monitor.mu.RUnlock()
 
 	if monitor.DisplayType == Invalid {
@@ -229,7 +231,7 @@ func (mm *MonitorManager) addBrightnessRequest(monitorName, value string) {
 		return
 	}
 
-	trimmed := strings.TrimPrefix(strings.TrimSpace(value), "%")
+	trimmed := strings.TrimSuffix(strings.TrimSpace(value), "%")
 	if len(trimmed) == 0 {
 		mm.loggBook.EnterLogAndPrint("Invalid brightness change request received. monitor name:"+monitorName+", value:"+value, logger.LogTypes.Warning, nil)
 		return
@@ -261,15 +263,16 @@ func (mm *MonitorManager) addBrightnessRequest(monitorName, value string) {
 		if err != nil {
 			return
 		}
-		floatValue = currentBrightness + floatValue
+		floatValue = max(min(currentBrightness+floatValue, maxBrightness), minBrightness)
 	case firstRune == '-':
 		floatValue, err = getFloatValue(1)
 		if err != nil {
 			return
 		}
-		floatValue = currentBrightness - floatValue
+		floatValue = max(min(currentBrightness-floatValue, maxBrightness), minBrightness)
 	case unicode.IsDigit(firstRune):
 		floatValue, err = getFloatValue(0)
+		floatValue = max(min(floatValue, maxBrightness), minBrightness)
 		if err != nil {
 			return
 		}
@@ -277,6 +280,7 @@ func (mm *MonitorManager) addBrightnessRequest(monitorName, value string) {
 		mm.loggBook.EnterLogAndPrint("Invalid brightness change request received. monitor name:"+monitorName+", value:"+value, logger.LogTypes.Warning, nil)
 		return
 	}
+
 	mm.brightnessChangeRequests <- map[string]float64{monitorName: floatValue}
 }
 
@@ -316,6 +320,9 @@ func (mm *MonitorManager) StartService() {
 func (mm *MonitorManager) requestListener() {
 	os.Remove(mm.mmSocket)
 
+	if err := fldir.CreateDirectory(filepath.Dir(mm.mmSocket)); err != nil {
+		mm.loggBook.EnterLogAndPrint("Failed to create directory for the listening socket - "+mm.mmSocket, logger.LogTypes.Error, err)
+	}
 	listener, err := net.Listen("unix", mm.mmSocket)
 	if err != nil {
 		mm.loggBook.EnterLogAndPrint("Failed to listen from socket - "+mm.mmSocket, logger.LogTypes.Error, err)
@@ -440,8 +447,8 @@ func (mm *MonitorManager) fillMonitorValues() {
 ddcUtilBlockLoop:
 	for block := range strings.SplitSeq(ddcUtilOut, "\n\n") {
 		// skipping failure messages & invalid blocks...
-		var failedFound = false
-		var filtered []string
+		var failedFound, invalidFound bool
+		var filtered = []string{}
 		for line := range strings.SplitSeq(block, "\n") {
 			trimmed := strings.TrimSpace(line)
 			if strings.HasPrefix(trimmed, "Failed") {
@@ -449,7 +456,7 @@ ddcUtilBlockLoop:
 				continue
 			}
 			if strings.HasPrefix(trimmed, "Invalid display") {
-				continue ddcUtilBlockLoop
+				invalidFound = true
 			}
 			if !failedFound {
 				break
@@ -501,6 +508,12 @@ ddcUtilBlockLoop:
 						continue ddcUtilBlockLoop
 					}
 				}
+			}
+
+			if invalidFound {
+				monitor.DisplayType = Invalid
+				monitor.mu.Unlock()
+				continue
 			}
 
 			// ddc - bus number...
@@ -573,6 +586,7 @@ func (mm *MonitorManager) getBrightnessValues() {
 				monitor.DisplayType = Invalid
 				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Warning, nil)
 			}
+			monitor.minBrightness = monitor.maxBrightness * 0.01
 
 		case DDC:
 			command = fmt.Sprintf("ddcutil getvcp 10 --bus %s", monitor.BusNum)
@@ -618,7 +632,9 @@ func (mm *MonitorManager) getBrightnessValues() {
 				monitor.DisplayType = Invalid
 				err := errors.New("Invalid output from the following command - " + command + "\nThe output is - " + out)
 				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Warning, nil)
+				break
 			}
+			monitor.minBrightness = monitor.maxBrightness * 0.01
 
 		case Backlight:
 			// max brightness value...
@@ -647,6 +663,7 @@ func (mm *MonitorManager) getBrightnessValues() {
 				monitor.DisplayType = Invalid
 				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Warning, nil)
 			}
+			monitor.minBrightness = monitor.maxBrightness * 0.01
 		}
 		monitor.mu.Unlock()
 	}
