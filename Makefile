@@ -10,7 +10,7 @@ PREFIX := /usr/local
 
 MAJOR_VERSION := 9
 MINOR_VERSION := 3
-PATCH_VERSION := 1
+PATCH_VERSION := 2
 
 FLAGS ?= -trimpath -mod=readonly -modcacherw
 LDFLAGS := -X "github.com/wizarki972/myone/internal/common.MAJOR_VERSION=${MAJOR_VERSION}" -X "github.com/wizarki972/myone/internal/common.PATCH_VERSION=${PATCH_VERSION}" -X "github.com/wizarki972/myone/internal/common.MINOR_VERSION=${MINOR_VERSION}" -s -w
