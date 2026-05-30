@@ -23,10 +23,11 @@ func NewThemer(themeName string, loggBook *logger.LogBook) *Themer {
 	home := fldir.GetHomeDir()
 
 	var t = &Themer{
-		release:   nil,
-		loggBook:  loggBook,
-		homeDir:   home,
-		themesDir: filepath.Join(home, common.THEMES_DIR),
+		release:         nil,
+		isLocalVerFound: false,
+		loggBook:        loggBook,
+		homeDir:         home,
+		themesDir:       filepath.Join(home, common.THEMES_DIR),
 
 		commonStatePath:      filepath.Join(home, common.COMMON_PLACED_STATE_PATH),
 		currentThemeNamePath: filepath.Join(home, common.CURRENT_THEME_NAME_ENTRY_PATH),
@@ -71,10 +72,11 @@ type Themer struct {
 		Minor int
 		Patch int
 	}
-	areFilesFound bool
-	versionPath   string
-	homeDir       string
-	themesDir     string
+	areFilesFound   bool
+	isLocalVerFound bool
+	versionPath     string
+	homeDir         string
+	themesDir       string
 
 	commonStatePath      string
 	currentThemeNamePath string
@@ -88,6 +90,10 @@ type Themer struct {
 func (t *Themer) Update() {
 	if t.release == nil {
 		t.FetchRelease()
+	}
+
+	if !t.isLocalVerFound {
+		t.FetchLocalVersion()
 	}
 
 	if t.areFilesFound {
@@ -131,6 +137,7 @@ func (t *Themer) Download() {
 	if err := fldir.Unzip(tempPath, t.themesDir); err != nil {
 		t.loggBook.EnterLogAndPrint("Failed to unzip the downloaded files.", logger.LogTypes.Error, err)
 	}
+	t.areFilesFound = true
 
 	// CLEARING CACHE
 	t.loggBook.EnterLogAndPrint("Cleaning up...", logger.LogTypes.Info, nil)
@@ -141,6 +148,10 @@ func (t *Themer) Download() {
 
 // Installs the downloaded config/theme files
 func (t *Themer) Install() {
+	if !t.areFilesFound {
+		t.loggBook.EnterLogAndPrint("Cannot download theme/config files.", logger.LogTypes.Error, errors.New("cannot download theme/config files"))
+		return
+	}
 	t.generatePlaceholderValues()
 
 	// placing files
@@ -310,7 +321,11 @@ func (t *Themer) FetchLocalVersion() {
 		if err != nil {
 			t.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 		}
+		t.isLocalVerFound = true
+		return
 	}
+
+	t.loggBook.EnterLogAndPrint("Cannot fetch local themes/config files version from path - "+t.versionPath+", make sure that they are already downloaded.", logger.LogTypes.Error, errors.New("cannot fetch local themes/config files version from path - "+t.versionPath+", make sure that they are already downloaded"))
 }
 
 func (t *Themer) CheckFiles() {
@@ -322,7 +337,7 @@ func (t *Themer) CheckFiles() {
 		}
 		t.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 	}
-	t.areFilesFound = len(entries) > 5
+	t.areFilesFound = len(entries) > 7
 }
 
 func (t *Themer) FetchRelease() {
