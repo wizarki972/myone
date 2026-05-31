@@ -17,6 +17,7 @@ var DefaultConfig = Config{
 		Panic:           false,
 		DirectoryPath:   getDefaultLogsDirPath(),
 		SaveLogsOnError: false,
+		LogSaveInterval: 10,
 	},
 	Experimental: Experimental{
 		UseSerialIDForASD: false,

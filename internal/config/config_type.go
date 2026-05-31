@@ -20,6 +20,7 @@ type Logs struct {
 	Panic           bool   `toml:"panic"`
 	DirectoryPath   string `toml:"directory_path"`
 	SaveLogsOnError bool   `toml:"save_logs_on_error"`
+	LogSaveInterval int    `toml:"log_save_interval"`
 }
 
 // Experimental

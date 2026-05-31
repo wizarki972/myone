@@ -137,7 +137,12 @@ func (book *LogBook) SaveBook() error {
 // saves the logs after a certain amount of time.
 // mainly used for background services running for a long time.
 func (book *LogBook) StartAutoLogSaver(ctx context.Context) {
-	ticker := time.NewTicker(10 * time.Minute)
+	var ticker *time.Ticker
+	if book.userConfig.Logs.LogSaveInterval <= 0 || book.userConfig.Logs.LogSaveInterval > 59 {
+		ticker = time.NewTicker(10 * time.Minute)
+	} else {
+		ticker = time.NewTicker(time.Duration(book.userConfig.Logs.LogSaveInterval) * time.Minute)
+	}
 	defer ticker.Stop()
 
 	for {
