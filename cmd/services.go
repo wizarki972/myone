@@ -43,6 +43,12 @@ var servicesCMD = &cobra.Command{
 				bm := services.NewBattMon(loggerInstance, userConfig)
 				bm.StartService()
 			}
+
+			if displayMon {
+				loggerInstance.AddFlag("monitor-manager")
+				mm := services.NewMonitorManager(loggerInstance, userConfig)
+				mm.StartService()
+			}
 		}
 
 		return nil
@@ -50,13 +56,15 @@ var servicesCMD = &cobra.Command{
 }
 
 func initializeServicesFlags() {
-	servicesCMD.Flags().BoolVar(&battMon, "battery-monitor", false, "runs battery monitor service.")
-
 	servicesCMD.Flags().BoolVarP(&daemon, "daemon", "d", false, "runs the process in the background as a daemon.")
+
+	servicesCMD.Flags().BoolVarP(&battMon, "battery-monitor", "B", false, "runs battery monitor service.")
+
+	servicesCMD.Flags().BoolVarP(&displayMon, "display-devices-monitor", "D", false, "starts the monitor manager service, which handles brightness chnages of multiple monitors.")
 
 	servicesCMD.Flags().BoolVar(&saveLog, "save-log", false, "saves the log based on the default path or path specified in config.\nNo need to use this flag, if you are using --log-path flag.")
 
 	servicesCMD.Flags().StringVar(&logPath, "log-path", "", "saves the log to the provided path.")
 
-	// rootCMD.AddCommand(servicesCMD)
+	rootCMD.AddCommand(servicesCMD)
 }
