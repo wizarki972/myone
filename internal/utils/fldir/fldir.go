@@ -21,6 +21,15 @@ func IsPathExist(path string) bool {
 	return err == nil
 }
 
+// if the path accessible then returns true, else it returns false; along with the path's FileInfo.
+func IsPathExistAndInfo(path string) (bool, os.FileInfo) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false, nil
+	}
+	return true, info
+}
+
 // FILES
 // CreateFile creates a file if not exists.
 // If already exists, then overwrites(empties) it and return *os.File.
@@ -57,7 +66,8 @@ func ReadFileAsStringNoError(path string) string {
 	return strings.TrimSpace(string(data))
 }
 
-// Writes string as a file in the given path
+// Writes string as a file in the given path.
+// if the file is already present then it overwrites it.
 func WriteStringToFile(content, path string) error {
 	if err := CreateDirectory(filepath.Dir(path)); err != nil {
 		return err
@@ -65,6 +75,32 @@ func WriteStringToFile(content, path string) error {
 	// 0664 - 6 (r+w), 4(r)
 	if err := os.WriteFile(path, []byte(content), 0664); err != nil {
 		return err
+	}
+	return nil
+}
+
+// Writes string as a file in the given path.
+// if the file is already present then it writes to the end of the file.
+func WriteOrAppendToFile(content, path string) error {
+	if err := CreateDirectory(filepath.Dir(path)); err != nil {
+		return err
+	}
+	isExist, info := IsPathExistAndInfo(path)
+	if isExist {
+		if info.IsDir() {
+			file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+
+			_, err = file.WriteString(content)
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("the path is not a file but a directory.")
+		}
 	}
 	return nil
 }

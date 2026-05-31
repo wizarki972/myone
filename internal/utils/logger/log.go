@@ -29,6 +29,3 @@ var LogTypes = struct {
 		Type:     "ERROR",
 	},
 }
-
-// logbook - to store logs and save them at the end,
-//  config options - log save location

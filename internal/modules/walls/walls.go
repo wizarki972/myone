@@ -292,7 +292,7 @@ func (w *Wall) rofiWallMenuBuilder(dir_path, mode string) (string, error) {
 		}
 	}
 	if rofi_input.Len() == 0 {
-		w.logg_book.Log("No wallpapers found in the directory, install a wallpack.", logger.LogTypes.Error, errors.New("no wallpapers found in the directory, install a wallpack"))
+		w.logg_book.Print("No wallpapers found in the directory, install a wallpack.", logger.LogTypes.Error, errors.New("no wallpapers found in the directory, install a wallpack"))
 	}
 	return rofi_input.String(), nil
 }
