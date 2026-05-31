@@ -15,6 +15,7 @@ var themesCMD = &cobra.Command{
 	Short: "manage themes here...",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		loggerInstance = handleLogg()
+		loggerInstance.SetCloseOnError(true)
 		loggerInstance.AddSubCommand("myone themes")
 
 		var t *themer.Themer

@@ -2,10 +2,12 @@ package logger
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/wizarki972/myone/internal/config"
@@ -14,16 +16,20 @@ import (
 
 // LogBook - a book that stores all the logs and saves them when its told, usually at the end of any command execution.
 type LogBook struct {
+	mu              sync.Mutex
 	userConfig      *config.Config
 	invokedByFlags  string
 	invokedBySubCmd string
 	bookStartTime   time.Time
-	logs            string
-	logCount        int
+
+	logs     string
+	logCount int
+
 	save            bool
 	saveOnError     bool
 	savePath        string
 	previouslySaved bool
+	closeOnError    bool
 }
 
 // Constructor for LogBook. LogBook - a book that stores all the logs and saves them when its told, usually at the end of any command execution.
@@ -47,6 +53,7 @@ func NewLogBook(savePath string, save, saveOnError bool, userConfig *config.Conf
 		save:            save,
 		saveOnError:     saveOnError,
 		savePath:        savePath,
+		closeOnError:    true,
 	}
 }
 
@@ -56,8 +63,10 @@ func (book *LogBook) EnterLog(logMsg string, logType LogType, err error) {
 		book.Print("Cannot enter an empty log.", LogTypes.Error, nil)
 	}
 
+	book.mu.Lock()
 	book.logs += fmt.Sprintf("%s -- [%s] %s\n", time.Now().Format("02-01-2006 15:04:05"), logType.Type, logMsg)
 	book.logCount += 1
+	book.mu.Unlock()
 
 	if logType == LogTypes.Error && (book.saveOnError || book.save) {
 		book.SaveBook()
@@ -72,8 +81,10 @@ func (book *LogBook) EnterLogAndPrint(logMsg string, logType LogType, err error)
 	}
 
 	if book.saveOnError || book.save {
+		book.mu.Lock()
 		book.logs += fmt.Sprintf("%s -- [%s] %s\n", time.Now().Format("02-01-2006 15:04:05"), logType.Type, logMsg)
 		book.logCount += 1
+		book.mu.Unlock()
 	}
 
 	if logType == LogTypes.Error && (book.saveOnError || book.save) {
@@ -103,6 +114,9 @@ func (book *LogBook) AddFlag(flag string) {
 // Saves the log book in the specified location
 func (book *LogBook) SaveBook() error {
 	var err error
+	book.mu.Lock()
+	defer book.mu.Unlock()
+
 	logHeader := fmt.Sprintf("title=MyOne Log\ninvokedBySubCommand=%s\ninvokedByFlags=%s\nlogStartedAt=%s\nlogCount=%d\n\n===LOGS===\n\n", book.invokedBySubCmd, book.invokedByFlags, book.bookStartTime.Format("02-01-2006 15:04:05"), book.logCount)
 	if book.previouslySaved {
 		err = fldir.WriteOrAppendToFile(logHeader+book.logs, book.savePath)
@@ -143,6 +157,11 @@ func (book *LogBook) StartAutoLogSaver(ctx context.Context) {
 	}
 }
 
+// tells the book to close/not close when an error is encoutered.
+func (book *LogBook) SetCloseOnError(value bool) {
+	book.closeOnError = value
+}
+
 // it prints the log
 func (book *LogBook) Print(log string, logType LogType, err error) {
 	if len(log) == 0 {
@@ -156,9 +175,15 @@ func (book *LogBook) Print(log string, logType LogType, err error) {
 	fmt.Printf("-> %s\n", log)
 
 	if logType == LogTypes.Error {
-		if book.userConfig.Logs.Panic && err != nil {
+		if book.userConfig.Logs.Panic {
+			if err == nil {
+				panic(errors.New("no error was provided for this log"))
+			}
 			panic(err)
 		}
-		os.Exit(1)
+
+		if book.closeOnError {
+			os.Exit(1)
+		}
 	}
 }

@@ -13,6 +13,7 @@ var wallpaperCMD = &cobra.Command{
 	Short: "manages wallpaper packs",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		loggerInstance = handleLogg()
+		loggerInstance.SetCloseOnError(true)
 		loggerInstance.AddSubCommand("myone wallpapers")
 
 		wall := walls.NewWall(loggerInstance)

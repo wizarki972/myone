@@ -18,6 +18,7 @@ var servicesCMD = &cobra.Command{
 	Short: "start services from here...",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		loggerInstance = handleLogg()
+		loggerInstance.SetCloseOnError(false)
 		loggerInstance.AddSubCommand("services")
 
 		if battMon && displayMon {

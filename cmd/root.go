@@ -24,6 +24,7 @@ var rootCMD = &cobra.Command{
 	Short: "my one utility for my needs",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		loggerInstance = handleLogg()
+		loggerInstance.SetCloseOnError(true)
 		loggerInstance.AddSubCommand("myone")
 
 		if len(brightness) > 0 {
