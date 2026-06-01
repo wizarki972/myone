@@ -22,8 +22,7 @@ type LogBook struct {
 	invokedBySubCmd string
 	bookStartTime   time.Time
 
-	logs     string
-	logCount int
+	logs string
 
 	save            bool
 	saveOnError     bool
@@ -36,10 +35,10 @@ type LogBook struct {
 func NewLogBook(savePath string, save, saveOnError bool, userConfig *config.Config) *LogBook {
 	bookTime := time.Now()
 	if savePath == "" && (save || saveOnError) {
-		if len(userConfig.Logs.DirectoryPath) != 0 && fldir.IsPathExist(userConfig.Logs.DirectoryPath) {
-			savePath = filepath.Join(userConfig.Logs.DirectoryPath, bookTime.Format("02-01-2006 15:04:05")+"_myone.log")
+		if len(userConfig.Logs.Directory_Path) != 0 && fldir.IsPathExist(userConfig.Logs.Directory_Path) {
+			savePath = filepath.Join(userConfig.Logs.Directory_Path, bookTime.Format("02-01-2006 15:04:05")+"_myone.log")
 		} else {
-			savePath = filepath.Join(config.DefaultConfig.Logs.DirectoryPath, bookTime.Format("02-01-2006 15:04:05")+"_myone.log")
+			savePath = filepath.Join(config.DefaultConfig.Logs.Directory_Path, bookTime.Format("02-01-2006 15:04:05")+"_myone.log")
 		}
 	}
 
@@ -49,7 +48,6 @@ func NewLogBook(savePath string, save, saveOnError bool, userConfig *config.Conf
 		invokedByFlags:  "",
 		invokedBySubCmd: "",
 		logs:            "",
-		logCount:        0,
 		save:            save,
 		saveOnError:     saveOnError,
 		savePath:        savePath,
@@ -68,7 +66,6 @@ func (book *LogBook) EnterLog(logMsg string, logType LogType, err error) {
 
 	book.mu.Lock()
 	book.logs += fmt.Sprintf("%s -- [%s] %s\n", time.Now().Format("02-01-2006 15:04:05"), logType.Type, logMsg)
-	book.logCount += 1
 	book.mu.Unlock()
 
 	if logType == LogTypes.Error && (book.saveOnError || book.save) {
@@ -89,7 +86,6 @@ func (book *LogBook) EnterLogAndPrint(logMsg string, logType LogType, err error)
 	if book.saveOnError || book.save {
 		book.mu.Lock()
 		book.logs += fmt.Sprintf("%s -- [%s] %s\n", time.Now().Format("02-01-2006 15:04:05"), logType.Type, logMsg)
-		book.logCount += 1
 		book.mu.Unlock()
 	}
 
@@ -119,17 +115,16 @@ func (book *LogBook) AddFlag(flag string) {
 
 // Saves the log book in the specified location
 func (book *LogBook) SaveBook() error {
-	var err error
 	book.mu.Lock()
 	defer book.mu.Unlock()
 
-	logHeader := fmt.Sprintf("title=MyOne Log\ninvokedBySubCommand=%s\ninvokedByFlags=%s\nlogStartedAt=%s\nlogCount=%d\n\n===LOGS===\n\n", book.invokedBySubCmd, book.invokedByFlags, book.bookStartTime.Format("02-01-2006 15:04:05"), book.logCount)
+	var err error
 	if book.previouslySaved {
-		err = fldir.WriteOrAppendToFile(logHeader+book.logs, book.savePath)
+		err = fldir.WriteOrAppendToFile(book.logs, book.savePath)
 	} else {
+		logHeader := fmt.Sprintf("title=MyOne Log\ninvokedBySubCommand=%s\ninvokedByFlags=%s\nlogStartedAt=%s\n\n===LOGS===\n\n", book.invokedBySubCmd, book.invokedByFlags, book.bookStartTime.Format("02-01-2006 15:04:05"))
 		err = fldir.WriteStringToFile(logHeader+book.logs, book.savePath)
 	}
-
 	if err != nil {
 		return err
 	}
@@ -144,10 +139,10 @@ func (book *LogBook) SaveBook() error {
 // mainly used for background services running for a long time.
 func (book *LogBook) StartAutoLogSaver(ctx context.Context) {
 	var ticker *time.Ticker
-	if book.userConfig.Logs.LogSaveInterval <= 0 || book.userConfig.Logs.LogSaveInterval > 59 {
+	if book.userConfig.Logs.Logs_Save_Interval <= 0 || book.userConfig.Logs.Logs_Save_Interval > 59 {
 		ticker = time.NewTicker(10 * time.Minute)
 	} else {
-		ticker = time.NewTicker(time.Duration(book.userConfig.Logs.LogSaveInterval) * time.Minute)
+		ticker = time.NewTicker(time.Duration(book.userConfig.Logs.Logs_Save_Interval) * time.Minute)
 	}
 	defer ticker.Stop()
 
@@ -157,7 +152,9 @@ func (book *LogBook) StartAutoLogSaver(ctx context.Context) {
 			if err := book.SaveBook(); err != nil {
 				book.EnterLogAndPrint("Failed to save logs, after 10 minute interval. Exact issue is printed below,", LogTypes.Warning, nil)
 				fmt.Println("[ERROR] " + err.Error())
+				continue
 			}
+			book.logs = ""
 		case <-ctx.Done():
 			if err := book.SaveBook(); err != nil {
 				book.EnterLogAndPrint("Failed to save logs, after 10 minute interval. Exact issue is printed below,", LogTypes.Warning, nil)

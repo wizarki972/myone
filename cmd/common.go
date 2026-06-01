@@ -25,7 +25,7 @@ func handleLogg() *logger.LogBook {
 	case saveLog:
 		loggerInstance = logger.NewLogBook("", true, true, userConfig)
 	default:
-		loggerInstance = logger.NewLogBook("", false, userConfig.Logs.SaveLogsOnError, userConfig)
+		loggerInstance = logger.NewLogBook("", false, userConfig.Logs.Save_Logs_On_Error, userConfig)
 	}
 	return loggerInstance
 }
