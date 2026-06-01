@@ -12,15 +12,19 @@ var DefaultConfig = Config{
 	Battery: Battery{
 		Threshold: 20,
 	},
+	Monitor: Monitor{
+		Check_Backlight_For_ALL_Displays: false,
+		Ignore_Apple_Studio_Displays:     true,
+	},
 	Logs: Logs{
-		Level:           3,
-		Panic:           false,
-		DirectoryPath:   getDefaultLogsDirPath(),
-		SaveLogsOnError: false,
-		LogSaveInterval: 10,
+		Level:              3,
+		Panic:              false,
+		Directory_Path:     getDefaultLogsDirPath(),
+		Save_Logs_On_Error: false,
+		Logs_Save_Interval: 10,
 	},
 	Experimental: Experimental{
-		UseSerialIDForASD: false,
+		Use_Serial_ID_For_Apple_Studio_Displays: false,
 	},
 }
 

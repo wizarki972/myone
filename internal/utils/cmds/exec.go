@@ -2,6 +2,7 @@ package cmds
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -14,9 +15,47 @@ import (
 	"golang.org/x/term"
 )
 
+func ExecCommandContext(ctx context.Context, command string, feedback, output bool) (string, error) {
+	cmd := exec.CommandContext(ctx, command)
+
+	out, err := commonStringOutputLogic(cmd, feedback, output)
+	if ctx.Err() != nil {
+		return "", ctx.Err()
+	}
+	return out, err
+}
+
+func ExecCommandContextBytes(ctx context.Context, command string, feedback, output bool) ([]byte, error) {
+	cmd := exec.CommandContext(ctx, command)
+	out, err := commonBytesOutputLogic(cmd, feedback, output)
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+	return out, err
+}
+
 func ExecCommand(command string, feedback, output bool) (string, error) {
 	cmd := exec.Command("bash", "-c", command)
 
+	return commonStringOutputLogic(cmd, feedback, output)
+}
+
+func ExecCommandBytes(command string, output bool) ([]byte, error) {
+	cmd := exec.Command("bash", "-c", command)
+	return commonBytesOutputLogic(cmd, false, output)
+}
+
+func commonStringOutputLogic(cmd *exec.Cmd, feedback, ouput bool) (string, error) {
+	buf, err := commonExecCommandLogic(cmd, feedback, ouput)
+	return strings.TrimSpace(buf.String()), err
+}
+
+func commonBytesOutputLogic(cmd *exec.Cmd, feedback, ouput bool) ([]byte, error) {
+	buf, err := commonExecCommandLogic(cmd, feedback, ouput)
+	return buf.Bytes(), err
+}
+
+func commonExecCommandLogic(cmd *exec.Cmd, feedback, output bool) (bytes.Buffer, error) {
 	var buf bytes.Buffer
 	switch {
 	case feedback && output:
@@ -30,10 +69,10 @@ func ExecCommand(command string, feedback, output bool) (string, error) {
 		cmd.Stdout = &buf
 	}
 	if err := cmd.Run(); err != nil {
-		return "", err
+		return buf, err
 	}
 
-	return strings.TrimSpace(buf.String()), nil
+	return buf, nil
 }
 
 func ExecCommandDetached(command string) error {
@@ -50,20 +89,6 @@ func ExecCommandDetached(command string) error {
 		return err
 	}
 	return nil
-}
-
-func ExecCommandBytes(command string, output bool) ([]byte, error) {
-	var buf bytes.Buffer
-
-	cmd := exec.Command("bash", "-c", command)
-	if output {
-		cmd.Stdout = &buf
-	}
-	if err := cmd.Run(); err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), nil
 }
 
 func ExecCommandInInInteractiveShell(msg, title, command string, ask_user_permission, detach bool) error {

@@ -301,6 +301,20 @@ func GetXDGDir(name string) string {
 	return string(output)
 }
 
+// returns user runtime dir
+func GetRuntimeDir() (string, error) {
+	runtimeDir := strings.TrimSpace(os.Getenv("XDG_RUNTIME_DIR"))
+	if len(runtimeDir) == 0 || !IsPathExist(runtimeDir) {
+		runtimeDir = "/tmp/myone"
+		if err := CreateDirectory(runtimeDir); err != nil {
+			return "", err
+		}
+		return runtimeDir, nil
+	} else {
+		return runtimeDir, nil
+	}
+}
+
 // Returns user's home directroy path
 func GetHomeDir() string {
 	out, err := os.UserHomeDir()
