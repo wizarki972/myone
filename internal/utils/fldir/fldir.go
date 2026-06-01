@@ -303,8 +303,8 @@ func GetXDGDir(name string) string {
 
 // returns user runtime dir
 func GetRuntimeDir() (string, error) {
-	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-	if len(strings.TrimSpace(runtimeDir)) == 0 || !IsPathExist(runtimeDir) {
+	runtimeDir := strings.TrimSpace(os.Getenv("XDG_RUNTIME_DIR"))
+	if len(runtimeDir) == 0 || !IsPathExist(runtimeDir) {
 		runtimeDir = "/tmp/myone"
 		if err := CreateDirectory(runtimeDir); err != nil {
 			return "", err
