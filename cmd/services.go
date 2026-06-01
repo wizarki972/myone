@@ -41,13 +41,17 @@ var servicesCMD = &cobra.Command{
 			if battMon {
 				loggerInstance.AddFlag("battery-monitor")
 				bm := services.NewBattMon(loggerInstance, userConfig)
-				bm.StartService()
+				if bm != nil {
+					bm.StartService()
+				}
 			}
 
 			if displayMon {
 				loggerInstance.AddFlag("monitor-manager")
 				mm := services.NewMonitorManager(loggerInstance, userConfig)
-				mm.StartService()
+				if mm != nil {
+					mm.StartService()
+				}
 			}
 		}
 
