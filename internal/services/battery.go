@@ -108,8 +108,8 @@ func (bm *BattMon) StartService() {
 	if isRunning {
 		if err = killProcess(pid); err != nil {
 			bm.loggBook.EnterLogAndPrint("Failed to kill already running battery monitor service.", logger.LogTypes.Error, err)
+			return
 		}
-		return
 	}
 
 	if err := savePID(common.BATT_MON_PID_FILE_NAME, os.Getpid()); err != nil {

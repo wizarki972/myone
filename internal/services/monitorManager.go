@@ -2,9 +2,11 @@ package services
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -12,8 +14,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"unicode"
+	"time"
 
+	"github.com/wizarki972/myone/internal/common"
 	"github.com/wizarki972/myone/internal/config"
 	"github.com/wizarki972/myone/internal/utils/cmds"
 	"github.com/wizarki972/myone/internal/utils/fldir"
@@ -63,56 +66,46 @@ type Monitor struct {
 }
 
 func (monitor *Monitor) setBrightness(value float64, userConfig *config.Config, loggBook *logger.LogBook) {
-	var command string
-	handledefault := func() {
-		loggBook.EnterLogAndPrint("Performing default action", logger.LogTypes.Warning, nil)
-		command = fmt.Sprintf("brightnessctl s %.0f", value)
+	command := fmt.Sprintf("brightnessctl s %.0f", value)
 
-	}
 	switch monitor.DisplayType {
 	case Backlight:
 		if len(monitor.Backlight) > 0 {
 			command = fmt.Sprintf("brightnessctl --device %s s %.0f", monitor.Backlight, value)
 			break
 		}
-		loggBook.EnterLogAndPrint(fmt.Sprintf("For display %s no backlight was found, but the display type is backlight.", monitor.Name), logger.LogTypes.Warning, nil)
-		handledefault()
+		err := fmt.Errorf("For display %s no backlight was found, but the display type is backlight.", monitor.Name)
+		loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 	case DDC:
 		if len(monitor.BusNum) > 0 {
 			command = fmt.Sprintf("ddcutil -b %s setvcp 10 %.0f", monitor.BusNum, value)
 			break
 		}
-		loggBook.EnterLogAndPrint(fmt.Sprintf("For display %s no bus number was found, but the display type is DDC ", monitor.Name), logger.LogTypes.Warning, nil)
-		handledefault()
+		err := fmt.Errorf("For display %s no bus number was found, but the display type is DDC ", monitor.Name)
+		loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 	case AppleDisplay:
 		command = fmt.Sprintf("asdbctl set %.0f", value)
 
-		if !userConfig.Experimental.UseSerialIDForASD {
+		if !userConfig.Experimental.Use_Serial_ID_For_Apple_Studio_Displays {
 			break
 		}
 		if len(monitor.SerialNum) > 0 {
 			command = fmt.Sprintf("asdbctl -s %s set %.0f", monitor.SerialNum, value)
 			break
 		}
-		loggBook.EnterLogAndPrint(fmt.Sprintf("For display %s no serial number was found, but the display type is Apple Studio Display ", monitor.Name), logger.LogTypes.Warning, nil)
-		// handledefault()
+		err := fmt.Errorf("For display %s no serial number was found, but the display type is Apple Studio Display ", monitor.Name)
+		loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 	default:
-		handledefault()
+		loggBook.EnterLogAndPrint("Invalid monitor type.", logger.LogTypes.Error, errors.New("invalid monitor type"))
+		return
 	}
 
-	if len(command) == 0 {
-		loggBook.EnterLogAndPrint("Something thats not supposed to happen happened, since no command was chosen, the service cannot change the brightness.", logger.LogTypes.Warning, nil)
-	}
-
-	monitor.mu.Lock()
 	if _, err := cmds.ExecCommand(command, false, false); err != nil {
-		monitor.mu.Unlock()
-		loggBook.EnterLogAndPrint("Error in executing this command --> "+command, logger.LogTypes.Warning, nil)
+		loggBook.EnterLogAndPrint("Error in executing this command --> "+command, logger.LogTypes.Error, err)
 		return
 	}
 	loggBook.EnterLogAndPrint(fmt.Sprintf("%s --> brightness changed from %.2f to %.2f", monitor.Name, monitor.currentBrightness, value), logger.LogTypes.Info, nil)
 	monitor.currentBrightness = value
-	monitor.mu.Unlock()
 }
 
 type MonitorManager struct {
@@ -130,28 +123,31 @@ type MonitorManager struct {
 
 	// data...
 	monitors                 map[string]*Monitor
-	brightnessChangeRequests chan map[string]float64
-	quit                     chan string
+	brightnessChangeRequests chan MMCommand
+	ctx                      context.Context
 }
 
 func NewMonitorManager(loggBook *logger.LogBook, userConfig *config.Config) *MonitorManager {
-	if userConfig.Experimental.UseSerialIDForASD {
+	if userConfig.Experimental.Use_Serial_ID_For_Apple_Studio_Displays {
 		loggBook.EnterLogAndPrint("Experimental :: Using serial ID of Monitors. Helps with multiple Apple Studio Displays", logger.LogTypes.Info, nil)
 	}
 
 	runtimeDir, err := fldir.GetRuntimeDir()
 	if err != nil {
 		loggBook.EnterLogAndPrint("Failed to get a proper runtime directory.", logger.LogTypes.Error, err)
+		return nil
 	}
-	hyprlandInstanceSign := os.Getenv("HYPRLAND_INSTANCE_SIGNATURE")
-	if len(strings.TrimSpace(runtimeDir)) == 0 {
+	hyprlandInstanceSign := strings.TrimSpace(os.Getenv("HYPRLAND_INSTANCE_SIGNATURE"))
+	if len(runtimeDir) == 0 {
 		loggBook.EnterLogAndPrint("Cannot get XDG Runtime Directory environment variable.", logger.LogTypes.Error, errors.New("cannot get XDG Runtime Directory environment variable"))
+		return nil
 	}
-	if len(strings.TrimSpace(hyprlandInstanceSign)) == 0 {
+	if len(hyprlandInstanceSign) == 0 {
 		loggBook.EnterLogAndPrint("Cannot get Hyprland Instance Signature environment variable.", logger.LogTypes.Error, errors.New("cannot get Hyprland Instance Signature environment variable"))
+		return nil
 	}
 
-	return &MonitorManager{
+	mm := &MonitorManager{
 		userConfig: userConfig,
 		loggBook:   loggBook,
 
@@ -162,9 +158,21 @@ func NewMonitorManager(loggBook *logger.LogBook, userConfig *config.Config) *Mon
 		asdbctlPresent: pkg.IsPkgInstalled("asdbctl"),
 
 		monitors:                 make(map[string]*Monitor),
-		brightnessChangeRequests: make(chan map[string]float64, 10),
-		quit:                     make(chan string),
+		brightnessChangeRequests: make(chan MMCommand, 10),
+		ctx:                      nil,
 	}
+
+	if !mm.ddcutilPresent {
+		mm.loggBook.EnterLogAndPrint("Missing dependency - ddcutil.", logger.LogTypes.Error, errors.New("Missing dependency - ddcutil."))
+		return nil
+	}
+
+	if !mm.asdbctlPresent && !userConfig.Monitor.Ignore_Apple_Studio_Displays {
+		mm.loggBook.EnterLogAndPrint("Missing dependency - ddcutil.", logger.LogTypes.Error, errors.New("Missing dependency - asdbctl."))
+		return nil
+	}
+
+	return mm
 }
 
 // BELOW CODE FOR - BRIGHTNESS REQUESTS
@@ -173,120 +181,55 @@ func NewMonitorManager(loggBook *logger.LogBook, userConfig *config.Config) *Mon
 func (mm *MonitorManager) brightnessRequestHandler() {
 	for {
 		select {
-		case req := <-mm.brightnessChangeRequests:
-			mm.mu.RLock()
-			for monitorName, value := range req {
-				monitor, ok := mm.monitors[monitorName]
-				// if monitor not found...
-				if !ok {
-					mm.loggBook.EnterLogAndPrint("Monitor not recognized (or) not found.", logger.LogTypes.Warning, nil)
-					break
-				}
-
-				// what if the information is lacking/display invalid
-				if monitor.DisplayType == Invalid {
-					mm.loggBook.EnterLogAndPrint("Monitor "+monitorName+" is invalid.", logger.LogTypes.Warning, nil)
-					break
-				}
-
-				// what if the brightness value is less thean/equal to zero...
-				if value > 0 {
-					monitor.setBrightness(value, mm.userConfig, mm.loggBook)
-				} else {
-					mm.loggBook.EnterLogAndPrint("[ERROR] Invalid brightness value.", logger.LogTypes.Warning, nil)
-					break
-				}
+		case mmCommand := <-mm.brightnessChangeRequests:
+			// Err checks....
+			if len(mmCommand.TargetMonitor) == 0 || mmCommand.Value <= 0 {
+				mm.loggBook.EnterLogAndPrint("Invalid brightness change values received.", logger.LogTypes.Error, errors.New("invalid brightness change values received"))
+				return
 			}
+
+			// monitor fetching
+			mm.mu.RLock()
+			monitor, ok := mm.monitors[mmCommand.TargetMonitor]
+			if !ok {
+				mm.loggBook.EnterLogAndPrint("Invalid monitor name received - "+mmCommand.TargetMonitor, logger.LogTypes.Error, errors.New("invalid monitor name received - "+mmCommand.TargetMonitor))
+				return
+			}
+
+			// get monitor values....
+			monitor.mu.Lock()
+			if monitor.DisplayType == Invalid {
+				monitor.mu.Unlock()
+				mm.mu.RUnlock()
+				mm.loggBook.EnterLogAndPrint("Invalid display type.", logger.LogTypes.Error, errors.New("invalid display type"))
+				return
+			}
+			currentBrightness := monitor.currentBrightness
+			maxBrightness := monitor.maxBrightness
+			minBrightness := monitor.minBrightness
+
+			// brightness value calc-ing...
+			mmCommand.Value = maxBrightness * (mmCommand.Value / 100)
+			switch mmCommand.Prefix {
+			case '+':
+				mmCommand.Value = max(min(currentBrightness+mmCommand.Value, maxBrightness), minBrightness)
+			case '-':
+				mmCommand.Value = max(min(currentBrightness-mmCommand.Value, maxBrightness), minBrightness)
+			}
+
+			// setting brightness values...
+			monitor.setBrightness(mmCommand.Value, mm.userConfig, mm.loggBook)
+			monitor.mu.Unlock()
 			mm.mu.RUnlock()
-		case <-mm.quit:
+		case <-mm.ctx.Done():
 			return
 		}
 	}
-}
-
-// adds new brightness change requests
-func (mm *MonitorManager) addBrightnessRequest(monitorName, value string) {
-	if len(strings.TrimSpace(monitorName)) == 0 || len(strings.TrimSpace(value)) == 0 {
-		mm.loggBook.EnterLogAndPrint("Invalid brightness change values received.", logger.LogTypes.Warning, nil)
-		return
-	}
-
-	mm.mu.RLock()
-	monitor, ok := mm.monitors[monitorName]
-	mm.mu.RUnlock()
-
-	if !ok {
-		mm.loggBook.EnterLogAndPrint("Invalid monitor name received - "+monitorName, logger.LogTypes.Warning, nil)
-		return
-	}
-
-	monitor.mu.RLock()
-	currentBrightness := monitor.currentBrightness
-	maxBrightness := monitor.maxBrightness
-	minBrightness := monitor.minBrightness
-	monitor.mu.RUnlock()
-
-	if monitor.DisplayType == Invalid {
-		mm.loggBook.EnterLogAndPrint("Invalid display type.", logger.LogTypes.Warning, nil)
-		return
-	}
-
-	trimmed := strings.TrimSuffix(strings.TrimSpace(value), "%")
-	if len(trimmed) == 0 {
-		mm.loggBook.EnterLogAndPrint("Invalid brightness change request received. monitor name:"+monitorName+", value:"+value, logger.LogTypes.Warning, nil)
-		return
-	}
-
-	getFloatValue := func(startPosition int) (float64, error) {
-		if startPosition >= len(trimmed) || startPosition < 0 {
-			mm.loggBook.EnterLogAndPrint("Start position out of bounds.", logger.LogTypes.Warning, nil)
-			return -1, errors.New("start position out of bounds")
-		}
-		floatValue, err := strconv.ParseFloat(trimmed[startPosition:], 64)
-		if err != nil {
-			mm.loggBook.EnterLogAndPrint("Cannot convert value to float64.", logger.LogTypes.Warning, nil)
-			return -1, err
-		}
-		if floatValue <= 0 {
-			mm.loggBook.EnterLogAndPrint("Value less than or equal to 0 is received.", logger.LogTypes.Warning, nil)
-			return -1, errors.New("Value less than or equal to 0 is received.")
-		}
-		return (floatValue / 100) * maxBrightness, nil
-	}
-
-	firstRune := []rune(trimmed)[0]
-	var floatValue float64
-	var err error
-	switch {
-	case firstRune == '+':
-		floatValue, err = getFloatValue(1)
-		if err != nil {
-			return
-		}
-		floatValue = max(min(currentBrightness+floatValue, maxBrightness), minBrightness)
-	case firstRune == '-':
-		floatValue, err = getFloatValue(1)
-		if err != nil {
-			return
-		}
-		floatValue = max(min(currentBrightness-floatValue, maxBrightness), minBrightness)
-	case unicode.IsDigit(firstRune):
-		floatValue, err = getFloatValue(0)
-		floatValue = max(min(floatValue, maxBrightness), minBrightness)
-		if err != nil {
-			return
-		}
-	default:
-		mm.loggBook.EnterLogAndPrint("Invalid brightness change request received. monitor name:"+monitorName+", value:"+value, logger.LogTypes.Warning, nil)
-		return
-	}
-
-	mm.brightnessChangeRequests <- map[string]float64{monitorName: floatValue}
 }
 
 // BELOW CODE FOR - SOCKET LISTENERS & SERVICE STARTER
 
-func (mm *MonitorManager) HyprlandIPCListener() {
+func (mm *MonitorManager) hyprlandIPCListener() {
 	mm.loggBook.EnterLogAndPrint("Starting Hyprland IPC listener...", logger.LogTypes.Info, nil)
 	conn, err := net.Dial("unix", mm.hyprlandSocket2)
 	if err != nil {
@@ -295,69 +238,186 @@ func (mm *MonitorManager) HyprlandIPCListener() {
 	}
 	defer conn.Close()
 
+	lines := make(chan string)
+	connScanner := bufio.NewScanner(conn)
+
+	go func() {
+		defer close(lines)
+		for connScanner.Scan() {
+			lines <- connScanner.Text()
+		}
+	}()
 	mm.loggBook.EnterLogAndPrint("Monitoring Hyprland IPC socket -> "+mm.hyprlandSocket2, logger.LogTypes.Info, nil)
-	scanner := bufio.NewScanner(conn)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if strings.HasPrefix(line, "monitorremoved") || strings.HasPrefix(line, "monitoradded") {
-			mm.loggBook.EnterLogAndPrint("Change detected in the number of monitors. Updating monitors information.", logger.LogTypes.Info, nil)
-			mm.Discover()
+
+	var dCtx context.Context = nil
+	var dCancel context.CancelFunc = nil
+
+	for {
+		select {
+		case <-mm.ctx.Done():
+			if dCancel != nil {
+				dCancel()
+			}
+			return
+		case line, ok := <-lines:
+			if !ok {
+				mm.loggBook.EnterLogAndPrint("Hyprland socket connection closed.", logger.LogTypes.Error, connScanner.Err())
+				if dCancel != nil {
+					dCancel()
+				}
+				return
+			}
+
+			if dCancel != nil {
+				dCancel()
+				dCancel = nil
+			}
+
+			dCtx, dCancel = context.WithCancel(mm.ctx)
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "monitorremoved") || strings.HasPrefix(line, "monitoradded") {
+				mm.loggBook.EnterLogAndPrint("Change detected in the number of monitors. Updating monitors information.", logger.LogTypes.Info, nil)
+				go func(Ctx context.Context, cancel context.CancelFunc) {
+					defer cancel()
+					mm.Discover(Ctx)
+				}(dCtx, dCancel)
+			}
+
 		}
 	}
 }
 
 func (mm *MonitorManager) StartService() {
-	if len(mm.monitors) == 0 {
-		mm.Discover()
+	isRunning, pid, err := isOldProcessRunning(common.MONITOR_MON_PID_FILE_NAME)
+	if err != nil {
+		mm.loggBook.EnterLogAndPrint("Cannot determine whether an old process is running or not.", logger.LogTypes.Warning, nil)
 	}
-	go mm.HyprlandIPCListener()
-	go mm.brightnessRequestHandler()
 
-	mm.requestListener()
+	if isRunning {
+		if err = killProcess(pid); err != nil {
+			mm.loggBook.EnterLogAndPrint("Failed to kill an old process.", logger.LogTypes.Error, errors.New("Failed to kill an old process."))
+			return
+		}
+	}
+
+	if err := savePID(common.MONITOR_MON_PID_FILE_NAME, os.Getpid()); err != nil {
+		mm.loggBook.EnterLogAndPrint("Failed to save PID  so the current service is stopped.", logger.LogTypes.Error, err)
+		return
+	}
+
+	// main...
+	var cancel context.CancelFunc = nil
+	mm.ctx, cancel = context.WithCancel(context.Background())
+	defer cancel()
+	var wg sync.WaitGroup
+
+	if len(mm.monitors) == 0 {
+		mm.Discover(mm.ctx)
+	}
+
+	// starting auto logs saver...
+	wg.Go(func() {
+		defer cancel()
+		mm.loggBook.StartAutoLogSaver(mm.ctx)
+	})
+
+	// Hyprland IPC listener
+	wg.Go(func() {
+		defer cancel()
+		mm.hyprlandIPCListener()
+	})
+
+	// Brightness change requests handler...
+	wg.Go(func() {
+		defer cancel()
+		mm.brightnessRequestHandler()
+	})
+
+	// listens for client requests...
+	wg.Go(func() {
+		defer cancel()
+		mm.requestListener()
+	})
+
+	wg.Wait()
 }
 
 // listens for all kinds of monitor releated requests from the socket, but currently only for brightness change requests.
 func (mm *MonitorManager) requestListener() {
+	// path checks...
 	os.Remove(mm.mmSocket)
-
 	if err := fldir.CreateDirectory(filepath.Dir(mm.mmSocket)); err != nil {
 		mm.loggBook.EnterLogAndPrint("Failed to create directory for the listening socket - "+mm.mmSocket, logger.LogTypes.Error, err)
+		return
 	}
+
+	// create listener...
 	listener, err := net.Listen("unix", mm.mmSocket)
 	if err != nil {
 		mm.loggBook.EnterLogAndPrint("Failed to listen from socket - "+mm.mmSocket, logger.LogTypes.Error, err)
+		return
 	}
 	defer listener.Close()
 
+	// local context...
+	localCtx, localCancel := context.WithCancel(mm.ctx)
+	defer localCancel()
+
+	// ctx done listener...
+	go func() {
+		<-localCtx.Done()
+		if mm.ctx.Err() != nil {
+			mm.loggBook.EnterLogAndPrint("Context cancelled. closing client socket listener.", logger.LogTypes.Error, err)
+		}
+		listener.Close()
+	}()
+
+	// start lsitening...
 	mm.loggBook.EnterLogAndPrint("Listening for requets...", logger.LogTypes.Info, nil)
 	for {
 		c, err := listener.Accept()
 		if err != nil {
-			mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+			select {
+			case <-mm.ctx.Done():
+				return
+			default:
+				if localCtx.Err() != nil {
+					return
+				}
+				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+				continue
+			}
 		}
 
+		// spin off each connection into their own concurrent process...
 		go func(conn net.Conn) {
 			defer conn.Close()
-			scanner := bufio.NewScanner(conn)
-			for scanner.Scan() {
-				input := scanner.Text()
-				mm.loggBook.EnterLogAndPrint("Received ==> "+input, logger.LogTypes.Info, nil)
-				args := strings.Split(strings.TrimSpace(input), ">>")
-				if len(args) == 0 {
-					mm.loggBook.EnterLogAndPrint("Invalid request. "+input, logger.LogTypes.Warning, nil)
+
+			decoder := json.NewDecoder(conn)
+			for {
+				// close any connection older than 5 seconds after receiving a request...
+				conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+				var request MMCommand
+				if err := decoder.Decode(&request); err != nil {
+					if err == io.EOF {
+						return
+					}
+					mm.loggBook.EnterLogAndPrint("Failed to decode client request.", logger.LogTypes.Error, err)
 					return
 				}
 
-				switch args[0] {
+				mm.loggBook.EnterLogAndPrint(fmt.Sprintf("Received request ==> %s, Value: %.2f,Target Monitor: %s,Prefix: %c", request.Command, request.Value, request.TargetMonitor, request.Prefix), logger.LogTypes.Info, nil)
+				if len(request.Command) == 0 || request.Value <= 0 || len(request.TargetMonitor) == 0 {
+					mm.loggBook.EnterLogAndPrint("Request is invalid", logger.LogTypes.Error, errors.New("invalid request"))
+					// instead of breaking of because of an error, we continue the loop to check for new valid requests...
+					continue
+				}
+
+				switch request.Command {
 				case "brightness":
-					if len(args) != 3 {
-						mm.loggBook.EnterLogAndPrint("Invalid request. "+input, logger.LogTypes.Warning, nil)
-						return
-					}
-					mm.addBrightnessRequest(args[1], args[2])
+					mm.brightnessChangeRequests <- request
 				default:
-					mm.loggBook.EnterLogAndPrint("Invalid request. "+input, logger.LogTypes.Warning, nil)
-					return
+					mm.loggBook.EnterLogAndPrint("Invalid command type ==> "+request.Command, logger.LogTypes.Error, errors.New("invalid command type ==> "+request.Command))
 				}
 			}
 		}(c)
@@ -367,59 +427,81 @@ func (mm *MonitorManager) requestListener() {
 // BELOW CODE IS FOR - DISCOVER MONITORS AND GET BRIGHTNESS VALUES
 
 // Discover all available monitors
-func (mm *MonitorManager) Discover() {
-	mm.mu.Lock()
-	defer mm.mu.Unlock()
+func (mm *MonitorManager) Discover(dCtx context.Context) {
+	if err := dCtx.Err(); err != nil {
+		mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+		return
+	}
 
 	mm.loggBook.EnterLogAndPrint("Scanning for all monitors...", logger.LogTypes.Info, nil)
-	mm.monitors = make(map[string]*Monitor)
-	mm.prepareMonitorsSlice()
-	mm.fillMonitorValues()
-	mm.getBrightnessValues()
+	tempMonitorsSlice := make(map[string]*Monitor)
+	if err := mm.prepareMonitorsSlice(dCtx, tempMonitorsSlice); err != nil {
+		return
+	}
+
+	if err := mm.fillMonitorValues(dCtx, tempMonitorsSlice); err != nil {
+		return
+	}
+
+	if err := mm.getBrightnessValues(dCtx, tempMonitorsSlice); err != nil {
+		return
+	}
+
+	if len(tempMonitorsSlice) > 0 {
+		mm.mu.Lock()
+		mm.monitors = tempMonitorsSlice
+		mm.mu.Unlock()
+		return
+	}
+	mm.loggBook.EnterLogAndPrint("No monitor/display devices are found", logger.LogTypes.Warning, nil)
 }
 
 // prepare monitor slice with all compositor recognized monitors...
-func (mm *MonitorManager) prepareMonitorsSlice() {
+func (mm *MonitorManager) prepareMonitorsSlice(dCtx context.Context, tempMonitorSlice map[string]*Monitor) error {
 	// getting compositor recognized monitors...
-	output, err := cmds.ExecCommandBytes(HYPRCTL_MONITORS_CMD, true)
+	output, err := cmds.ExecCommandContextBytes(dCtx, HYPRCTL_MONITORS_CMD, false, true)
 	if err != nil {
 		mm.loggBook.EnterLogAndPrint("Error while executing command - "+HYPRCTL_MONITORS_CMD, logger.LogTypes.Error, err)
+		return err
 	}
 	tempMonitors := make([]hyprMonitor, 0)
 	if err := json.Unmarshal(output, &tempMonitors); err != nil {
 		mm.loggBook.EnterLogAndPrint("Failed to parse json values from hyprctl "+HYPRCTL_MONITORS_CMD, logger.LogTypes.Error, err)
+		return err
 	}
 
 	// preparing monitors slice...
 	for _, monitor := range tempMonitors {
-		mm.monitors[monitor.Name] = &Monitor{
+		tempMonitorSlice[monitor.Name] = &Monitor{
 			Name:              monitor.Name,
 			DisplayType:       Unknown,
 			maxBrightness:     -1,
 			currentBrightness: -1,
 		}
 
-		mm.monitors[monitor.Name].mu.Lock()
+		tempMonitorSlice[monitor.Name].mu.Lock()
 		// Apple Check...
 		preprocessedDescription := strings.ReplaceAll(strings.ToLower(monitor.Description), " ", "")
 		if strings.Contains(preprocessedDescription, "apple") || strings.Contains(preprocessedDescription, "studiodisplay") {
-			mm.monitors[monitor.Name].DisplayType = AppleDisplay
+			tempMonitorSlice[monitor.Name].DisplayType = AppleDisplay
 		} else {
 			preprocessedMake := strings.ReplaceAll(strings.ToLower(monitor.Make), " ", "")
 			if strings.Contains(preprocessedMake, "apple") || strings.Contains(preprocessedMake, "applecomputerinc") {
-				mm.monitors[monitor.Name].DisplayType = AppleDisplay
+				tempMonitorSlice[monitor.Name].DisplayType = AppleDisplay
 			}
 		}
-		mm.monitors[monitor.Name].mu.Unlock()
+		tempMonitorSlice[monitor.Name].mu.Unlock()
 	}
+	return nil
 }
 
 // fill monitors slice with necessary values...
-func (mm *MonitorManager) fillMonitorValues() {
+func (mm *MonitorManager) fillMonitorValues(dCtx context.Context, tempMonitorsSlice map[string]*Monitor) error {
 	// brightnessctl i output...
-	bctlOut, err := cmds.ExecCommand("brightnessctl i", false, true)
+	bctlOut, err := cmds.ExecCommandContext(dCtx, "brightnessctl i", false, true)
 	if err != nil {
 		mm.loggBook.EnterLogAndPrint("Error cannot run command - 'brightnessctl i'", logger.LogTypes.Error, err)
+		return err
 	}
 	var bctlDevices []string
 	for block := range strings.SplitSeq(bctlOut, "\n\n") {
@@ -435,13 +517,14 @@ func (mm *MonitorManager) fillMonitorValues() {
 	}
 
 	// ddcutil detect output
-	ddcUtilOut, err := cmds.ExecCommand("ddcutil detect", false, true)
+	ddcUtilOut, err := cmds.ExecCommandContext(dCtx, "ddcutil detect", false, true)
 	if err != nil {
 		if !mm.ddcutilPresent {
 			mm.loggBook.EnterLogAndPrint("ddcutil dependency not found", logger.LogTypes.Error, err)
-			return
+			return err
 		}
 		mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+		return err
 	}
 
 ddcUtilBlockLoop:
@@ -472,9 +555,9 @@ ddcUtilBlockLoop:
 		if len(matches) != 4 {
 			continue
 		}
-		monitor, ok := mm.monitors[matches[3]]
+		monitor, ok := tempMonitorsSlice[matches[3]]
 		if !ok {
-			mm.loggBook.EnterLogAndPrint("Skipped "+matches[1]+", this monitor is not recognized by the compositor.", logger.LogTypes.Warning, err)
+			mm.loggBook.EnterLogAndPrint("Skipped "+matches[1]+", this monitor is not recognized by the compositor.", logger.LogTypes.Error, err)
 			continue
 		}
 		monitor.mu.Lock()
@@ -484,13 +567,18 @@ ddcUtilBlockLoop:
 		if fldir.IsPathExist(drmPath) {
 			// apple display - serial number
 			if monitor.DisplayType == AppleDisplay {
-				if mm.userConfig.Experimental.UseSerialIDForASD {
+				if mm.userConfig.Monitor.Ignore_Apple_Studio_Displays {
+					monitor.DisplayType = Invalid
+					monitor.mu.Unlock()
+					continue
+				}
+				if mm.userConfig.Experimental.Use_Serial_ID_For_Apple_Studio_Displays {
 					serialMatches := serialNumberMatch.FindStringSubmatch(block)
 					if len(serialMatches) == 2 {
 						monitor.SerialNum = serialMatches[1]
 					} else {
 						monitor.DisplayType = Invalid
-						mm.loggBook.EnterLogAndPrint("Failed to get proper serial number for "+monitor.cardName, logger.LogTypes.Warning, nil)
+						mm.loggBook.EnterLogAndPrint("Failed to get proper serial number for "+monitor.cardName, logger.LogTypes.Error, nil)
 					}
 				}
 				monitor.mu.Unlock()
@@ -498,7 +586,7 @@ ddcUtilBlockLoop:
 			}
 
 			// eDP backlight matching...
-			if strings.Contains(monitor.Name, "eDP") && len(bctlDevices) > 0 {
+			if (mm.userConfig.Monitor.Check_Backlight_For_ALL_Displays || strings.Contains(monitor.Name, "eDP")) && len(bctlDevices) > 0 {
 				for _, backlightName := range bctlDevices {
 					backlightPath := filepath.Join(drmPath, backlightName)
 					if fldir.IsPathExist(backlightPath) {
@@ -530,76 +618,84 @@ ddcUtilBlockLoop:
 		monitor.DisplayType = Invalid
 		monitor.mu.Unlock()
 	}
+	return nil
 }
 
 // get the monitors current and max brightness...
-func (mm *MonitorManager) getBrightnessValues() {
-	if len(mm.monitors) == 0 {
-		mm.loggBook.EnterLogAndPrint("No monitors found.", logger.LogTypes.Error, nil)
+func (mm *MonitorManager) getBrightnessValues(dCtx context.Context, tempMonitorsSlice map[string]*Monitor) error {
+	if len(tempMonitorsSlice) == 0 {
+		err := errors.New("monitors not found")
+		mm.loggBook.EnterLogAndPrint("Monitors not found.", logger.LogTypes.Error, err)
+		return err
 	}
 
-	for _, monitor := range mm.monitors {
+monitorLoop:
+	for _, monitor := range tempMonitorsSlice {
 		monitor.mu.Lock()
 		if monitor.DisplayType == Invalid {
 			monitor.mu.Unlock()
-			continue
+			continue monitorLoop
 		}
 
 		var command string
 		switch monitor.DisplayType {
 		case AppleDisplay:
 			// current brightness...
-			if mm.userConfig.Experimental.UseSerialIDForASD {
+			if mm.userConfig.Experimental.Use_Serial_ID_For_Apple_Studio_Displays {
 				command = fmt.Sprintf("asdbctl --serial %s get", monitor.SerialNum)
 			} else {
 				command = "asdbctl get"
 			}
 
-			out, err := cmds.ExecCommand(command, false, true)
+			out, err := cmds.ExecCommandContext(dCtx, command, false, true)
 			if err != nil {
 				monitor.DisplayType = Invalid
-				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Warning, nil)
+				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 				break
 			}
 			monitor.currentBrightness, err = strconv.ParseFloat(out, 64)
 			if err != nil {
 				monitor.DisplayType = Invalid
-				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Warning, nil)
+				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 				break
 			}
 
 			// max brightness...
-			if mm.userConfig.Experimental.UseSerialIDForASD {
+			if mm.userConfig.Experimental.Use_Serial_ID_For_Apple_Studio_Displays {
 				command = fmt.Sprintf("asdbctl --serial %s max", monitor.SerialNum)
 			} else {
 				command = "asdbctl max"
 			}
 
-			out, err = cmds.ExecCommand(command, false, true)
+			out, err = cmds.ExecCommandContext(dCtx, command, false, true)
 			if err != nil {
 				monitor.DisplayType = Invalid
-				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Warning, nil)
+				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 				break
 			}
 			monitor.maxBrightness, err = strconv.ParseFloat(out, 64)
 			if err != nil {
 				monitor.DisplayType = Invalid
-				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Warning, nil)
+				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+				break
 			}
 			monitor.minBrightness = monitor.maxBrightness * 0.01
 
 		case DDC:
 			command = fmt.Sprintf("ddcutil getvcp 10 --bus %s", monitor.BusNum)
-			out, err := cmds.ExecCommand(command, false, true)
+			out, err := cmds.ExecCommandContext(dCtx, command, false, true)
 			if err != nil {
 				monitor.DisplayType = Invalid
-				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Warning, nil)
+				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 				break
 			}
 
 			parts := strings.Split(out, ":")
 			if len(parts) != 2 || len(parts[1]) == 0 {
-				continue
+				monitor.DisplayType = Invalid
+				monitor.mu.Unlock()
+				mm.loggBook.EnterLogAndPrint("Failed to get brightness properties of the display - "+monitor.Name, logger.LogTypes.Error, errors.New("failed to get brightness properties of the display - "+monitor.Name))
+				continue monitorLoop
 			}
 
 			for str := range strings.SplitSeq(parts[1], ",") {
@@ -613,7 +709,7 @@ func (mm *MonitorManager) getBrightnessValues() {
 					monitor.currentBrightness, err = strconv.ParseFloat(strs[1], 64)
 					if err != nil {
 						monitor.DisplayType = Invalid
-						mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Warning, nil)
+						mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 						break
 					}
 					continue
@@ -622,7 +718,7 @@ func (mm *MonitorManager) getBrightnessValues() {
 					monitor.maxBrightness, err = strconv.ParseFloat(strs[1], 64)
 					if err != nil {
 						monitor.DisplayType = Invalid
-						mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Warning, nil)
+						mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 						break
 					}
 				}
@@ -631,40 +727,42 @@ func (mm *MonitorManager) getBrightnessValues() {
 			if (monitor.maxBrightness <= 0) || (monitor.currentBrightness < 0) {
 				monitor.DisplayType = Invalid
 				err := errors.New("Invalid output from the following command - " + command + "\nThe output is - " + out)
-				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Warning, nil)
+				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 				break
 			}
 			monitor.minBrightness = monitor.maxBrightness * 0.01
 
 		case Backlight:
 			// max brightness value...
-			out, err := cmds.ExecCommand("brightnessctl m", false, true)
+			out, err := cmds.ExecCommandContext(dCtx, "brightnessctl m", false, true)
 			if err != nil {
 				monitor.DisplayType = Invalid
-				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Warning, nil)
+				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 				break
 			}
 			monitor.maxBrightness, err = strconv.ParseFloat(out, 64)
 			if err != nil {
 				monitor.DisplayType = Invalid
-				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Warning, nil)
+				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 				break
 			}
 
 			// current brightness value...
-			out, err = cmds.ExecCommand("brightnessctl g", false, true)
+			out, err = cmds.ExecCommandContext(dCtx, "brightnessctl g", false, true)
 			if err != nil {
 				monitor.DisplayType = Invalid
-				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Warning, nil)
+				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
 				break
 			}
 			monitor.currentBrightness, err = strconv.ParseFloat(out, 64)
 			if err != nil {
 				monitor.DisplayType = Invalid
-				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Warning, nil)
+				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+				break
 			}
 			monitor.minBrightness = monitor.maxBrightness * 0.01
 		}
 		monitor.mu.Unlock()
 	}
+	return nil
 }
