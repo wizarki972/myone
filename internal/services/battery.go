@@ -13,6 +13,7 @@ import (
 	"github.com/wizarki972/myone/internal/utils/cmds"
 	"github.com/wizarki972/myone/internal/utils/fldir"
 	"github.com/wizarki972/myone/internal/utils/logger"
+	"github.com/wizarki972/myone/internal/utils/process"
 )
 
 // All battery states like Discharging, Full, Charging, NotCharging
@@ -40,7 +41,6 @@ type BattMon struct {
 func NewBattMon(loggBook *logger.LogBook, userConfig *config.Config) *BattMon {
 	var err error
 	entries, err := filepath.Glob("/sys/class/power_supply/BAT*")
-	loggBook.EnterLogAndPrint("info checking", logger.LogTypes.Info, nil)
 	if err != nil {
 		loggBook.EnterLogAndPrint("Error in getting entries from /sys/class/power_supply/ that has BAT as prefix.", logger.LogTypes.Error, err)
 		return nil
@@ -58,7 +58,6 @@ func NewBattMon(loggBook *logger.LogBook, userConfig *config.Config) *BattMon {
 		}
 
 		if present == "1" && batteryType == "Battery" {
-			fmt.Println("returned")
 			return &BattMon{
 				config:           userConfig,
 				isBatteryPresent: true,
@@ -106,19 +105,19 @@ func (bm *BattMon) GetStatus() string {
 
 // Monitors the battery level monitor, alerts when below the threshold value.
 func (bm *BattMon) StartService() {
-	isRunning, pid, err := isOldProcessRunning(common.BATT_MON_PID_FILE_NAME)
+	isRunning, pid, err := process.IsOldProcessRunning(common.BATT_MON_PID_FILE_NAME)
 	if err != nil {
 		bm.loggBook.EnterLogAndPrint("Cannot determine whether an old precess is running or not.", logger.LogTypes.Warning, nil)
 	}
 
 	if isRunning {
-		if err = killProcess(pid); err != nil {
+		if err = process.KillProcess(pid); err != nil {
 			bm.loggBook.EnterLogAndPrint("Failed to kill already running battery monitor service.", logger.LogTypes.Error, err)
 			return
 		}
 	}
 
-	if err := savePID(common.BATT_MON_PID_FILE_NAME, os.Getpid()); err != nil {
+	if err := process.SavePID(common.BATT_MON_PID_FILE_NAME, os.Getpid()); err != nil {
 		bm.loggBook.EnterLogAndPrint("Failed to save PID so the current service is stopped.", logger.LogTypes.Error, err)
 		return
 	}
@@ -130,8 +129,8 @@ func (bm *BattMon) StartService() {
 		if !prevNotified {
 			remBatt := bm.GetChargeLeft()
 			state := bm.GetStatus()
-			if state == stati.Discharging && remBatt <= bm.config.Battery.Threshold {
-				command := fmt.Sprintf("notify-send -u critical '󱐋 Time to charge!' 'Current battery level is %d%%' -i battery-caution -t 3000", bm.config.Battery.Threshold)
+			if remBatt > 0 && state == stati.Discharging && remBatt <= bm.config.Battery.Threshold {
+				command := fmt.Sprintf("notify-send -u critical '󱐋 Time to charge!' 'Current battery level is %d%%' -i battery-caution -t 3000", remBatt)
 				_, err := cmds.ExecCommand(command, false, false)
 				if err != nil {
 					bm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)

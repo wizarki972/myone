@@ -1,4 +1,4 @@
-package services
+package process
 
 import (
 	"errors"
@@ -11,12 +11,12 @@ import (
 	"github.com/wizarki972/myone/internal/utils/fldir"
 )
 
-func savePID(fileName string, pid int) error {
+func SavePID(fileName string, pid int) error {
 	path := filepath.Join(common.RUN_DIR, strconv.Itoa(os.Getuid()), fileName)
 	return fldir.WriteStringToFile(strconv.Itoa(pid), path)
 }
 
-func isOldProcessRunning(fileName string) (bool, int, error) {
+func IsOldProcessRunning(fileName string) (bool, int, error) {
 	path := filepath.Join(common.RUN_DIR, strconv.Itoa(os.Getuid()), fileName)
 	if !fldir.IsPathExist(path) {
 		return false, -1, nil
@@ -42,7 +42,7 @@ func isOldProcessRunning(fileName string) (bool, int, error) {
 	return false, -1, nil
 }
 
-func getPID(fileName string) (int, error) {
+func GetPID(fileName string) (int, error) {
 	path := filepath.Join(common.RUN_DIR, strconv.Itoa(os.Getuid()), fileName)
 	pid, err := fldir.ReadFileAsString(path)
 	if err != nil {
@@ -51,7 +51,7 @@ func getPID(fileName string) (int, error) {
 	return strconv.Atoi(pid)
 }
 
-func killProcess(pid int) error {
+func KillProcess(pid int) error {
 	process, err := os.FindProcess(pid)
 	if err != nil {
 		return err

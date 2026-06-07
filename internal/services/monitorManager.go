@@ -22,6 +22,7 @@ import (
 	"github.com/wizarki972/myone/internal/utils/fldir"
 	"github.com/wizarki972/myone/internal/utils/logger"
 	"github.com/wizarki972/myone/internal/utils/pkg"
+	"github.com/wizarki972/myone/internal/utils/process"
 )
 
 const HYPRCTL_MONITORS_CMD = "hyprctl -j monitors"
@@ -288,19 +289,19 @@ func (mm *MonitorManager) hyprlandIPCListener() {
 }
 
 func (mm *MonitorManager) StartService() {
-	isRunning, pid, err := isOldProcessRunning(common.MONITOR_MON_PID_FILE_NAME)
+	isRunning, pid, err := process.IsOldProcessRunning(common.MONITOR_MON_PID_FILE_NAME)
 	if err != nil {
 		mm.loggBook.EnterLogAndPrint("Cannot determine whether an old process is running or not.", logger.LogTypes.Warning, nil)
 	}
 
 	if isRunning {
-		if err = killProcess(pid); err != nil {
+		if err = process.KillProcess(pid); err != nil {
 			mm.loggBook.EnterLogAndPrint("Failed to kill an old process.", logger.LogTypes.Error, errors.New("Failed to kill an old process."))
 			return
 		}
 	}
 
-	if err := savePID(common.MONITOR_MON_PID_FILE_NAME, os.Getpid()); err != nil {
+	if err := process.SavePID(common.MONITOR_MON_PID_FILE_NAME, os.Getpid()); err != nil {
 		mm.loggBook.EnterLogAndPrint("Failed to save PID  so the current service is stopped.", logger.LogTypes.Error, err)
 		return
 	}
