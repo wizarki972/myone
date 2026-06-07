@@ -8,9 +8,9 @@ GO := go
 DESTDIR :=
 PREFIX := /usr/local
 
-MAJOR_VERSION := 10
-MINOR_VERSION := 0
-PATCH_VERSION := 0
+MAJOR_VERSION := 9
+MINOR_VERSION := 3
+PATCH_VERSION := 3
 
 FLAGS ?= -trimpath -mod=readonly -modcacherw
 LDFLAGS := -X "github.com/wizarki972/myone/internal/common.MAJOR_VERSION=${MAJOR_VERSION}" -X "github.com/wizarki972/myone/internal/common.PATCH_VERSION=${PATCH_VERSION}" -X "github.com/wizarki972/myone/internal/common.MINOR_VERSION=${MINOR_VERSION}" -s -w
@@ -45,8 +45,8 @@ start:
 	@-killall -9 $(BIN)
 
 	@echo "STARTING SYSTEM PROCESSES..."
-	-/usr/local/bin/myone services -B > /dev/null 2>&1 & disown
-	-/usr/local/bin/myone services -D > /dev/null 2>&1 & disown
+	-/usr/local/bin/myone --battery-monitor > /dev/null 2>&1 & disown
+	-/usr/local/bin/myone --monitor-daemon > /dev/null 2>&1 & disown
 
 PHONY += clean
 clean:
