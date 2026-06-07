@@ -117,16 +117,24 @@ func (bm *BattMon) StartService() {
 	}
 
 	bm.loggBook.EnterLogAndPrint("Started battery monitor...", logger.LogTypes.Info, nil)
+	var prevNotified = false
+	var prevNotifiedTime time.Time
 	for {
-		remBatt := bm.GetChargeLeft()
-		state := bm.GetStatus()
-		if state == stati.Discharging && remBatt <= bm.config.Battery.Threshold {
-			command := fmt.Sprintf("notify-send -u critical '󱐋 Time to charge!' 'Current battery level is %d%%' -i battery-caution -t 30000", config.DefaultConfig.Battery.Threshold)
-			_, err := cmds.ExecCommand(command, false, false)
-			if err != nil {
-				bm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+		if !prevNotified {
+			remBatt := bm.GetChargeLeft()
+			state := bm.GetStatus()
+			if state == stati.Discharging && remBatt <= bm.config.Battery.Threshold {
+				command := fmt.Sprintf("notify-send -u critical '󱐋 Time to charge!' 'Current battery level is %d%%' -i battery-caution -t 30000", config.DefaultConfig.Battery.Threshold)
+				_, err := cmds.ExecCommand(command, false, false)
+				if err != nil {
+					bm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+				}
+				prevNotified = true
+				prevNotifiedTime = time.Now()
 			}
+		} else if time.Since(prevNotifiedTime).Minutes() > 15 {
+			prevNotified = false
 		}
-		time.Sleep(45 * time.Second)
+		time.Sleep(20 * time.Second)
 	}
 }
