@@ -40,8 +40,10 @@ type BattMon struct {
 func NewBattMon(loggBook *logger.LogBook, userConfig *config.Config) *BattMon {
 	var err error
 	entries, err := filepath.Glob("/sys/class/power_supply/BAT*")
+	loggBook.EnterLogAndPrint("info checking", logger.LogTypes.Info, nil)
 	if err != nil {
 		loggBook.EnterLogAndPrint("Error in getting entries from /sys/class/power_supply/ that has BAT as prefix.", logger.LogTypes.Error, err)
+		return nil
 	}
 
 	for _, entry := range entries {
@@ -56,6 +58,7 @@ func NewBattMon(loggBook *logger.LogBook, userConfig *config.Config) *BattMon {
 		}
 
 		if present == "1" && batteryType == "Battery" {
+			fmt.Println("returned")
 			return &BattMon{
 				config:           userConfig,
 				isBatteryPresent: true,
@@ -79,11 +82,13 @@ func (bm *BattMon) GetChargeLeft() int {
 	data, err := fldir.ReadFileAsString(bm.chargePath)
 	if err != nil {
 		bm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+		return -1
 	}
 
 	remBatt, err := strconv.Atoi(data)
 	if err != nil {
 		bm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+		return -1
 	}
 
 	return remBatt
@@ -94,6 +99,7 @@ func (bm *BattMon) GetStatus() string {
 	state, err := fldir.ReadFileAsString(bm.statusPath)
 	if err != nil {
 		bm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
+		return ""
 	}
 	return state
 }
@@ -113,7 +119,8 @@ func (bm *BattMon) StartService() {
 	}
 
 	if err := savePID(common.BATT_MON_PID_FILE_NAME, os.Getpid()); err != nil {
-		bm.loggBook.EnterLogAndPrint("Failed to save PID  so the current service is stopped.", logger.LogTypes.Error, err)
+		bm.loggBook.EnterLogAndPrint("Failed to save PID so the current service is stopped.", logger.LogTypes.Error, err)
+		return
 	}
 
 	bm.loggBook.EnterLogAndPrint("Started battery monitor...", logger.LogTypes.Info, nil)
@@ -124,7 +131,7 @@ func (bm *BattMon) StartService() {
 			remBatt := bm.GetChargeLeft()
 			state := bm.GetStatus()
 			if state == stati.Discharging && remBatt <= bm.config.Battery.Threshold {
-				command := fmt.Sprintf("notify-send -u critical '󱐋 Time to charge!' 'Current battery level is %d%%' -i battery-caution -t 30000", config.DefaultConfig.Battery.Threshold)
+				command := fmt.Sprintf("notify-send -u critical '󱐋 Time to charge!' 'Current battery level is %d%%' -i battery-caution -t 3000", bm.config.Battery.Threshold)
 				_, err := cmds.ExecCommand(command, false, false)
 				if err != nil {
 					bm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
