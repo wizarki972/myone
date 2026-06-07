@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 
@@ -39,9 +40,13 @@ var servicesCMD = &cobra.Command{
 			}
 		} else {
 			if battMon {
+				fmt.Println("services battMon 2")
 				loggerInstance.AddFlag("battery-monitor")
+				fmt.Println("passed")
+				loggerInstance.EnterLogAndPrint("just", logger.LogTypes.Info, nil)
 				bm := services.NewBattMon(loggerInstance, userConfig)
-				if bm != nil {
+				if !bm.IsNil() {
+					fmt.Println("starting")
 					bm.StartService()
 				}
 			}

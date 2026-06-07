@@ -57,9 +57,6 @@ func NewLogBook(savePath string, save, saveOnError bool, userConfig *config.Conf
 
 // Enters given log into the log book, following log types are accepted: 1 - info, 2 - warning, 3 - error
 func (book *LogBook) EnterLog(logMsg string, logType LogType, err error) {
-	book.mu.Lock()
-	defer book.mu.Unlock()
-
 	if len(logMsg) == 0 {
 		book.Print("Cannot enter an empty log.", LogTypes.Error, nil)
 	}
@@ -76,9 +73,6 @@ func (book *LogBook) EnterLog(logMsg string, logType LogType, err error) {
 
 // It stores the log in the book and it also prints it.
 func (book *LogBook) EnterLogAndPrint(logMsg string, logType LogType, err error) {
-	book.mu.Lock()
-	defer book.mu.Unlock()
-
 	if len(logMsg) == 0 {
 		book.Print("Cannot enter an empty log.", LogTypes.Error, nil)
 	}
@@ -110,7 +104,7 @@ func (book *LogBook) AddFlag(flag string) {
 		book.Print("Cannot add an empty flag.", LogTypes.Error, nil)
 	}
 	book.invokedByFlags += flag + ","
-	book.EnterLog("FROM HERE, LOGS FOR THE FOLLOWING FLAG - "+flag, LogTypes.Info, nil)
+	book.EnterLog("FROM HERE, THE LOGS ARE FOR THE FOLLOWING FLAG - "+flag, LogTypes.Info, nil)
 }
 
 // Saves the log book in the specified location
