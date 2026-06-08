@@ -8,7 +8,6 @@ import (
 	"github.com/wizarki972/myone/internal/common"
 	"github.com/wizarki972/myone/internal/config"
 	"github.com/wizarki972/myone/internal/modules/audio"
-	"github.com/wizarki972/myone/internal/modules/battery"
 	"github.com/wizarki972/myone/internal/modules/display"
 	"github.com/wizarki972/myone/internal/modules/logout"
 	"github.com/wizarki972/myone/internal/modules/screenshot"
@@ -18,7 +17,7 @@ import (
 
 var brightness, volumeNotify string
 var logOut int
-var screenShot, monitorDaemon, batteryMonitor, version, update, depCheck, saveDefaultConfig bool
+var screenShot, version, update, depCheck, saveDefaultConfig bool
 
 var rootCMD = &cobra.Command{
 	Use:   "myone",
@@ -29,7 +28,7 @@ var rootCMD = &cobra.Command{
 		loggerInstance.AddSubCommand("myone")
 
 		if len(brightness) > 0 {
-			display.ChangeBrightness(brightness)
+			display.ChangeBrightness(brightness, loggerInstance)
 		}
 
 		if logOut > 0 {
@@ -43,16 +42,6 @@ var rootCMD = &cobra.Command{
 
 		if screenShot {
 			screenshot.OpenGUI()
-		}
-
-		if batteryMonitor {
-			loggerInstance.AddFlag("battery-monitor")
-			battery.NewBatteryMonitor(loggerInstance).StartMonitor()
-		}
-
-		if monitorDaemon {
-			loggerInstance.AddFlag("monitor-daemon")
-			display.NewMonitorDaemon(loggerInstance).StartDaemon()
 		}
 
 		if version {
@@ -88,10 +77,6 @@ func initializeFlags() {
 	rootCMD.Flags().StringVar(&volumeNotify, "volume-osd", "", "just tells swayosd to show current volume level of the current sink(speaker or output device)/source(microphone or input device).\nAccepted values: sink, source.")
 
 	rootCMD.Flags().BoolVar(&screenShot, "screenshot", false, "opens flameshot gui with the XDG_USER_DIR/Screenshot as the save path.")
-
-	rootCMD.Flags().BoolVar(&batteryMonitor, "battery-monitor", false, "continously checks battery level and notifies the user when its lower.")
-
-	rootCMD.Flags().BoolVar(&monitorDaemon, "monitor-daemon", false, "continuosly checks for new/removed monitors and changes the brightness based on the focused monitor.\n NOTE: does not support OLED or LED displays. Only supports LCD displays (displays with backlight).")
 
 	rootCMD.Flags().BoolVarP(&version, "version", "v", false, "prints the package version.")
 

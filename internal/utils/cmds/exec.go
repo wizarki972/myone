@@ -16,7 +16,7 @@ import (
 )
 
 func ExecCommandContext(ctx context.Context, command string, feedback, output bool) (string, error) {
-	cmd := exec.CommandContext(ctx, command)
+	cmd := exec.CommandContext(ctx, "bash", "-c", command)
 
 	out, err := commonStringOutputLogic(cmd, feedback, output)
 	if ctx.Err() != nil {
@@ -26,7 +26,7 @@ func ExecCommandContext(ctx context.Context, command string, feedback, output bo
 }
 
 func ExecCommandContextBytes(ctx context.Context, command string, feedback, output bool) ([]byte, error) {
-	cmd := exec.CommandContext(ctx, command)
+	cmd := exec.CommandContext(ctx, "bash", "-c", command)
 	out, err := commonBytesOutputLogic(cmd, feedback, output)
 	if ctx.Err() != nil {
 		return nil, ctx.Err()

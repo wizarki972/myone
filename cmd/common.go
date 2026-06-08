@@ -17,7 +17,7 @@ var saveLog bool
 func handleLogg() *logger.LogBook {
 	userConfig = config.GetConfig()
 	switch {
-	case len(logPath) > 0:
+	case len(strings.TrimSpace(logPath)) > 0:
 		if !strings.HasPrefix(logPath, fldir.GetHomeDir()) {
 			fmt.Println("-> [WARN] The logpath is outside of user's home directory, make sure to have necessary permission for saving the log.")
 		}

@@ -45,8 +45,8 @@ start:
 	@-killall -9 $(BIN)
 
 	@echo "STARTING SYSTEM PROCESSES..."
-	-/usr/local/bin/myone --battery-monitor > /dev/null 2>&1 & disown
-	-/usr/local/bin/myone --monitor-daemon > /dev/null 2>&1 & disown
+	-/usr/local/bin/myone services -B > /dev/null 2>&1 & disown
+	-/usr/local/bin/myone services -D > /dev/null 2>&1 & disown
 
 PHONY += clean
 clean:

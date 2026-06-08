@@ -24,5 +24,8 @@ const COMMON_PLACED_STATE_PATH = THEMES_STATE_DIR + "/is_common_placed"
 
 // PID PATHS
 const RUN_DIR = "/run/user"
-const BATT_MON_PID_FILE_NAME = "myone-batt-mon.pid"
-const MONITOR_MON_PID_FILE_NAME = "myone-monitor-mon.pid"
+const BATT_MON_PID_FILE_PATH = "myone/myone-batt-mon.pid"
+const MONITOR_MON_PID_FILE_PATH = "myone/myone-monitor-mon.pid"
+
+// SOCKETS
+const DISPLAY_DEVICES_MONITOR_SOCKET = "myone/monitor.sock"

@@ -25,8 +25,6 @@ import (
 	"github.com/wizarki972/myone/internal/utils/process"
 )
 
-const HYPRCTL_MONITORS_CMD = "hyprctl -j monitors"
-
 var (
 	bctlRegExp        = regexp.MustCompile(`Device '([^']+)' of class 'backlight'`)
 	i2cbusMatch       = regexp.MustCompile(`/dev/i2c-(\d+)`)
@@ -152,7 +150,7 @@ func NewMonitorManager(loggBook *logger.LogBook, userConfig *config.Config) *Mon
 		userConfig: userConfig,
 		loggBook:   loggBook,
 
-		mmSocket:        filepath.Join(runtimeDir, "myone", "monitor.sock"),
+		mmSocket:        filepath.Join(runtimeDir, common.DISPLAY_DEVICES_MONITOR_SOCKET),
 		hyprlandSocket2: filepath.Join(runtimeDir, "hypr", hyprlandInstanceSign, ".socket2.sock"),
 
 		ddcutilPresent: pkg.IsPkgInstalled("ddcutil"),
@@ -289,7 +287,7 @@ func (mm *MonitorManager) hyprlandIPCListener() {
 }
 
 func (mm *MonitorManager) StartService() {
-	isRunning, pid, err := process.IsOldProcessRunning(common.MONITOR_MON_PID_FILE_NAME)
+	isRunning, pid, err := process.IsOldProcessRunning(common.MONITOR_MON_PID_FILE_PATH)
 	if err != nil {
 		mm.loggBook.EnterLogAndPrint("Cannot determine whether an old process is running or not.", logger.LogTypes.Warning, nil)
 	}
@@ -301,7 +299,7 @@ func (mm *MonitorManager) StartService() {
 		}
 	}
 
-	if err := process.SavePID(common.MONITOR_MON_PID_FILE_NAME, os.Getpid()); err != nil {
+	if err := process.SavePID(common.MONITOR_MON_PID_FILE_PATH, os.Getpid()); err != nil {
 		mm.loggBook.EnterLogAndPrint("Failed to save PID  so the current service is stopped.", logger.LogTypes.Error, err)
 		return
 	}
@@ -318,7 +316,6 @@ func (mm *MonitorManager) StartService() {
 
 	// starting auto logs saver...
 	wg.Go(func() {
-		defer cancel()
 		mm.loggBook.StartAutoLogSaver(mm.ctx)
 	})
 
@@ -460,14 +457,14 @@ func (mm *MonitorManager) Discover(dCtx context.Context) {
 // prepare monitor slice with all compositor recognized monitors...
 func (mm *MonitorManager) prepareMonitorsSlice(dCtx context.Context, tempMonitorSlice map[string]*Monitor) error {
 	// getting compositor recognized monitors...
-	output, err := cmds.ExecCommandContextBytes(dCtx, HYPRCTL_MONITORS_CMD, false, true)
+	output, err := cmds.ExecCommandContextBytes(dCtx, common.HYPRCTL_MONITORS_CMD, false, true)
 	if err != nil {
-		mm.loggBook.EnterLogAndPrint("Error while executing command - "+HYPRCTL_MONITORS_CMD, logger.LogTypes.Error, err)
+		mm.loggBook.EnterLogAndPrint("Error while executing command - "+common.HYPRCTL_MONITORS_CMD, logger.LogTypes.Error, err)
 		return err
 	}
 	tempMonitors := make([]hyprMonitor, 0)
 	if err := json.Unmarshal(output, &tempMonitors); err != nil {
-		mm.loggBook.EnterLogAndPrint("Failed to parse json values from hyprctl "+HYPRCTL_MONITORS_CMD, logger.LogTypes.Error, err)
+		mm.loggBook.EnterLogAndPrint("Failed to parse json values from hyprctl "+common.HYPRCTL_MONITORS_CMD, logger.LogTypes.Error, err)
 		return err
 	}
 
@@ -683,7 +680,7 @@ monitorLoop:
 			monitor.minBrightness = monitor.maxBrightness * 0.01
 
 		case DDC:
-			command = fmt.Sprintf("ddcutil getvcp 10 --bus %s", monitor.BusNum)
+			command = "ddcutil getvcp 10 --bus " + monitor.BusNum
 			out, err := cmds.ExecCommandContext(dCtx, command, false, true)
 			if err != nil {
 				monitor.DisplayType = Invalid
@@ -735,7 +732,7 @@ monitorLoop:
 
 		case Backlight:
 			// max brightness value...
-			out, err := cmds.ExecCommandContext(dCtx, "brightnessctl m", false, true)
+			out, err := cmds.ExecCommandContext(dCtx, "brightnessctl m --device "+monitor.Backlight, false, true)
 			if err != nil {
 				monitor.DisplayType = Invalid
 				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)
@@ -749,7 +746,7 @@ monitorLoop:
 			}
 
 			// current brightness value...
-			out, err = cmds.ExecCommandContext(dCtx, "brightnessctl g", false, true)
+			out, err = cmds.ExecCommandContext(dCtx, "brightnessctl g --device "+monitor.Backlight, false, true)
 			if err != nil {
 				monitor.DisplayType = Invalid
 				mm.loggBook.EnterLogAndPrint(err.Error(), logger.LogTypes.Error, err)

@@ -16,6 +16,7 @@ var battMon, displayMon, daemon bool
 var servicesCMD = &cobra.Command{
 	Use:   "services",
 	Short: "start services from here...",
+	Long:  "NOTE: save_logs_on_error option is ignored in services. You can either save all logs or none",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		loggerInstance = handleLogg()
 		loggerInstance.SetCloseOnError(false)

@@ -105,7 +105,7 @@ func (bm *BattMon) GetStatus() string {
 
 // Monitors the battery level monitor, alerts when below the threshold value.
 func (bm *BattMon) StartService() {
-	isRunning, pid, err := process.IsOldProcessRunning(common.BATT_MON_PID_FILE_NAME)
+	isRunning, pid, err := process.IsOldProcessRunning(common.BATT_MON_PID_FILE_PATH)
 	if err != nil {
 		bm.loggBook.EnterLogAndPrint("Cannot determine whether an old precess is running or not.", logger.LogTypes.Warning, nil)
 	}
@@ -117,7 +117,7 @@ func (bm *BattMon) StartService() {
 		}
 	}
 
-	if err := process.SavePID(common.BATT_MON_PID_FILE_NAME, os.Getpid()); err != nil {
+	if err := process.SavePID(common.BATT_MON_PID_FILE_PATH, os.Getpid()); err != nil {
 		bm.loggBook.EnterLogAndPrint("Failed to save PID so the current service is stopped.", logger.LogTypes.Error, err)
 		return
 	}

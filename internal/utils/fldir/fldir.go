@@ -56,16 +56,6 @@ func ReadFileAsString(path string) (string, error) {
 	return strings.TrimSpace(string(data)), nil
 }
 
-// Reads the file data as string, if an error occurs then it returns empty string
-// remove this after rewriting battery service.
-func ReadFileAsStringNoError(path string) string {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(data))
-}
-
 // Writes string as a file in the given path.
 // if the file is already present then it overwrites it.
 func WriteStringToFile(content, path string) error {
@@ -87,7 +77,7 @@ func WriteOrAppendToFile(content, path string) error {
 	}
 	isExist, info := IsPathExistAndInfo(path)
 	if isExist {
-		if info.IsDir() {
+		if !info.IsDir() {
 			file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 			if err != nil {
 				return err
