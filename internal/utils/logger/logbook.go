@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,7 +35,7 @@ type LogBook struct {
 // Constructor for LogBook. LogBook - a book that stores all the logs and saves them when its told, usually at the end of any command execution.
 func NewLogBook(savePath string, save, saveOnError bool, userConfig *config.Config) *LogBook {
 	bookTime := time.Now()
-	if savePath == "" && (save || saveOnError) {
+	if len(strings.TrimSpace(savePath)) == 0 && (save || saveOnError) {
 		if len(userConfig.Logs.Directory_Path) != 0 && fldir.IsPathExist(userConfig.Logs.Directory_Path) {
 			savePath = filepath.Join(userConfig.Logs.Directory_Path, bookTime.Format("02-01-2006 15:04:05")+"_myone.log")
 		} else {
@@ -52,29 +53,36 @@ func NewLogBook(savePath string, save, saveOnError bool, userConfig *config.Conf
 		saveOnError:     saveOnError,
 		savePath:        savePath,
 		closeOnError:    true,
+		previouslySaved: false,
 	}
 }
 
 // Enters given log into the log book, following log types are accepted: 1 - info, 2 - warning, 3 - error
 func (book *LogBook) EnterLog(logMsg string, logType LogType, err error) {
 	if len(logMsg) == 0 {
-		book.Print("Cannot enter an empty log.", LogTypes.Error, nil)
+		book.Print("Cannot enter an empty log.", LogTypes.Warning, nil)
+		return
 	}
 
-	book.mu.Lock()
-	book.logs += fmt.Sprintf("%s -- [%s] %s\n", time.Now().Format("02-01-2006 15:04:05"), logType.Type, logMsg)
-	book.mu.Unlock()
+	if book.saveOnError || book.save {
+		book.mu.Lock()
+		book.logs += fmt.Sprintf("%s -- [%s] %s\n", time.Now().Format("02-01-2006 15:04:05"), logType.Type, logMsg)
+		book.mu.Unlock()
 
-	if logType == LogTypes.Error && (book.saveOnError || book.save) {
-		book.SaveBook()
-		book.Print(logMsg, logType, err)
+		if logType == LogTypes.Error {
+			book.Print(logMsg, logType, err)
+			if err := book.SaveBook(); err != nil {
+				book.Print("Cannot save logs.", LogTypes.Error, err)
+			}
+		}
 	}
 }
 
 // It stores the log in the book and it also prints it.
 func (book *LogBook) EnterLogAndPrint(logMsg string, logType LogType, err error) {
 	if len(logMsg) == 0 {
-		book.Print("Cannot enter an empty log.", LogTypes.Error, nil)
+		book.Print("Cannot enter an empty log.", LogTypes.Warning, nil)
+		return
 	}
 
 	if book.saveOnError || book.save {
@@ -83,34 +91,45 @@ func (book *LogBook) EnterLogAndPrint(logMsg string, logType LogType, err error)
 		book.mu.Unlock()
 	}
 
-	if logType == LogTypes.Error && (book.saveOnError || book.save) {
-		book.SaveBook()
-	}
-
 	book.Print(logMsg, logType, err)
+
+	if logType == LogTypes.Error {
+		if err := book.SaveBook(); err != nil {
+			book.Print("Cannot save logs.", LogTypes.Error, err)
+		}
+	}
 }
 
 // Add which sub command is running
 func (book *LogBook) AddSubCommand(subCmd string) {
-	if len(subCmd) == 0 {
-		book.Print("Cannot add an empty sub command.", LogTypes.Error, nil)
+	if len(subCmd) > 0 {
+		book.invokedBySubCmd = subCmd
 	}
-	book.invokedBySubCmd = subCmd
 }
 
 // Adds the next flag, which is running...
 func (book *LogBook) AddFlag(flag string) {
-	if len(flag) == 0 {
-		book.Print("Cannot add an empty flag.", LogTypes.Error, nil)
+	if len(flag) > 0 {
+		book.invokedByFlags += flag + ","
+		book.EnterLog("FROM HERE, THE LOGS ARE FOR THE FOLLOWING FLAG - "+flag, LogTypes.Info, nil)
 	}
-	book.invokedByFlags += flag + ","
-	book.EnterLog("FROM HERE, THE LOGS ARE FOR THE FOLLOWING FLAG - "+flag, LogTypes.Info, nil)
 }
 
 // Saves the log book in the specified location
 func (book *LogBook) SaveBook() error {
 	book.mu.Lock()
 	defer book.mu.Unlock()
+
+	if len(book.logs) == 0 {
+		book.Print("no logs are there to save.", LogTypes.Warning, nil)
+		return nil
+	}
+
+	if len(book.savePath) == 0 {
+		err := errors.New("no save path is provided to save logs")
+		book.Print(err.Error(), LogTypes.Error, err)
+		return err
+	}
 
 	var err error
 	if book.previouslySaved {
@@ -132,36 +151,46 @@ func (book *LogBook) SaveBook() error {
 // saves the logs after a certain amount of time.
 // mainly used for background services running for a long time.
 func (book *LogBook) StartAutoLogSaver(ctx context.Context) {
-	var ticker *time.Ticker
-	if book.userConfig.Logs.Logs_Save_Interval <= 0 || book.userConfig.Logs.Logs_Save_Interval > 59 {
-		ticker = time.NewTicker(10 * time.Minute)
-	} else {
-		ticker = time.NewTicker(time.Duration(book.userConfig.Logs.Logs_Save_Interval) * time.Minute)
-	}
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			if err := book.SaveBook(); err != nil {
-				book.EnterLogAndPrint("Failed to save logs, after 10 minute interval. Exact issue is printed below,", LogTypes.Warning, nil)
-				fmt.Println("[ERROR] " + err.Error())
-				continue
-			}
-			book.logs = ""
-		case <-ctx.Done():
-			if err := book.SaveBook(); err != nil {
-				book.EnterLogAndPrint("Failed to save logs, after 10 minute interval. Exact issue is printed below,", LogTypes.Warning, nil)
-				fmt.Println("[ERROR] " + err.Error())
-			}
-			return
+	if book.save {
+		var ticker *time.Ticker
+		if book.userConfig.Logs.Logs_Save_Interval <= 0 || book.userConfig.Logs.Logs_Save_Interval > 59 {
+			ticker = time.NewTicker(time.Duration(config.DefaultConfig.Logs.Logs_Save_Interval) * time.Minute)
+		} else {
+			ticker = time.NewTicker(time.Duration(book.userConfig.Logs.Logs_Save_Interval) * time.Minute)
 		}
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				if err := book.SaveBook(); err != nil {
+					book.EnterLogAndPrint(fmt.Sprintf("Failed to save logs, after %d minute interval. Exact issue is printed below,", book.userConfig.Logs.Logs_Save_Interval), LogTypes.Warning, nil)
+					fmt.Println("[ERROR] " + err.Error())
+					continue
+				}
+				book.logs = ""
+			case <-ctx.Done():
+				if err := book.SaveBook(); err != nil {
+					book.EnterLogAndPrint(fmt.Sprintf("Failed to save logs, after %d minute interval. Exact issue is printed below,", book.userConfig.Logs.Logs_Save_Interval), LogTypes.Warning, nil)
+					fmt.Println("[ERROR] " + err.Error())
+				}
+				return
+			}
+		}
+	} else {
+		book.Print("Logs are neither stored in memory nor saved", LogTypes.Info, nil)
 	}
 }
 
 // tells the book to close/not close when an error is encoutered.
 func (book *LogBook) SetCloseOnError(value bool) {
 	book.closeOnError = value
+}
+
+// tells the book whether to save logs/not when an error is encountered.
+// if the save flag is passed then this value does not matter.
+func (book *LogBook) SetSaveLogsOnError(value bool) {
+	book.saveOnError = value
 }
 
 // it prints the log

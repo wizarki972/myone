@@ -21,7 +21,7 @@ var DefaultConfig = Config{
 		Panic:              false,
 		Directory_Path:     getDefaultLogsDirPath(),
 		Save_Logs_On_Error: false,
-		Logs_Save_Interval: 10,
+		Logs_Save_Interval: 1,
 	},
 	Experimental: Experimental{
 		Use_Serial_ID_For_Apple_Studio_Displays: false,

@@ -20,6 +20,7 @@ var servicesCMD = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		loggerInstance = handleLogg()
 		loggerInstance.SetCloseOnError(false)
+		loggerInstance.SetSaveLogsOnError(false)
 		loggerInstance.AddSubCommand("services")
 
 		if battMon && displayMon {
